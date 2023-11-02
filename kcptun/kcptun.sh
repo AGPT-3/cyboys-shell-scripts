@@ -1,11 +1,11 @@
 #!/bin/sh
 
 : <<-'EOF'
-Copyright 2017-2019 Xingwang Liao <kuoruan@gmail.com>
+Copyright 2017-2019 Xingwang Liao < kuoruan@gmail.com >
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-	http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,7 +15,7 @@ EOF
 
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# 版本信息，请勿修改
+# Version information, please do not modify it
 # =================
 SHELL_VERSION=25
 CONFIG_VERSION=6
@@ -42,7 +42,7 @@ SUPERVISOR_SERVICE_FILE_DEBIAN_URL="${BASE_URL}/startup/supervisord.init.debain"
 SUPERVISOR_SERVICE_FILE_REDHAT_URL="${BASE_URL}/startup/supervisord.init.redhat"
 SUPERVISOR_SYSTEMD_FILE_URL="${BASE_URL}/startup/supervisord.systemd"
 
-# 默认参数
+#Default parameters
 # =======================
 D_LISTEN_PORT=29900
 D_TARGET_ADDR='127.0.0.1'
@@ -62,7 +62,7 @@ D_TCP='false'
 D_SNMPPERIOD=60
 D_PPROF='false'
 
-# 隐藏参数
+# Hidden parameters
 D_ACKNODELAY='false'
 D_NODELAY=1
 D_INTERVAL=20
@@ -73,3003 +73,3003 @@ D_SMUXBUF=4194304
 D_KEEPALIVE=10
 # ======================
 
-# 当前选择的实例 ID
+# Currently selected instance ID
 current_instance_id=""
 run_user='kcptun'
 
 clear
 
 cat >&1 <<-'EOF'
-#########################################################
-# Kcptun 服务端一键安装脚本                             #
-# 该脚本支持 Kcptun 服务端的安装、更新、卸载及配置      #
-# 脚本作者: Index <kuoruan@gmail.com>                   #
-# 作者博客: https://blog.kuoruan.com/                   #
-# Github: https://github.com/kuoruan/shell-scripts      #
-# QQ交流群: 43391448, 68133628                          #
-#           633945405                                   #
-#########################################################
+################################################ #######
+# Kcptun server one-click installation script #
+# This script supports the installation, update, uninstallation and configuration of Kcptun server #
+# Script author: Index < kuoruan@gmail.com > #
+# Author's blog: https://blog.kuoruan.com/ #
+# Github: https://github.com/kuoruan/shell-scripts #
+# QQ communication group: 43391448, 68133628 #
+# 633945405 #
+################################################ #######
 EOF
 
-# 打印帮助信息
+# Print help information
 usage() {
-	cat >&1 <<-EOF
+cat >&1 <<-EOF
 
-	请使用: $0 <option>
+Please use: $0 <option>
 
-	可使用的参数 <option> 包括:
+Available parameters <option> include:
 
-	    install          安装
-	    uninstall        卸载
-	    update           检查更新
-	    manual           自定义 Kcptun 版本安装
-	    help             查看脚本使用说明
-	    add              添加一个实例, 多端口加速
-	    reconfig <id>    重新配置实例
-	    show <id>        显示实例详细配置
-	    log <id>         显示实例日志
-	    del <id>         删除一个实例
+install install
+uninstall uninstall
+update check for updates
+manual Customized Kcptun version installation
+help View script usage instructions
+add adds an instance, multi-port acceleration
+reconfig <id> Reconfigure the instance
+show <id> displays detailed configuration of the instance
+log <id> displays instance logs
+del <id> deletes an instance
 
-	注: 上述参数中的 <id> 可选, 代表的是实例的ID
-	    可使用 1, 2, 3 ... 分别对应实例 kcptun, kcptun2, kcptun3 ...
-	    若不指定 <id>, 则默认为 1
+Note: <id> in the above parameters is optional and represents the ID of the instance.
+You can use 1, 2, 3... corresponding to the instances kcptun, kcptun2, kcptun3... respectively.
+If <id> is not specified, it defaults to 1
 
-	Supervisor 命令:
-	    service supervisord {start|stop|restart|status}
-	                        {启动|关闭|重启|查看状态}
-	Kcptun 相关命令:
-	    supervisorctl {start|stop|restart|status} kcptun<id>
-	                  {启动|关闭|重启|查看状态}
-	EOF
+Supervisor command:
+service supervisord {start|stop|restart|status}
+{Start | Shut down | Restart | View status}
+Kcptun related commands:
+supervisorctl {start|stop|restart|status} kcptun<id>
+{Start | Shut down | Restart | View status}
+EOF
 
-	exit $1
+exit $1
 }
 
-# 判断命令是否存在
+# Determine whether the command exists
 command_exists() {
-	command -v "$@" >/dev/null 2>&1
+command -v "$@" >/dev/null 2>&1
 }
 
-# 判断输入内容是否为数字
+# Determine whether the input content is a number
 is_number() {
-	expr "$1" + 1 >/dev/null 2>&1
+expr "$1" + 1 >/dev/null 2>&1
 }
 
-# 按任意键继续
+# Press any key to continue
 any_key_to_continue() {
-	echo "请按任意键继续或 Ctrl + C 退出"
-	local saved=""
-	saved="$(stty -g)"
-	stty -echo
-	stty cbreak
-	dd if=/dev/tty bs=1 count=1 2>/dev/null
-	stty -raw
-	stty echo
-	stty $saved
+echo "Please press any key to continue or Ctrl + C to exit"
+local saved=""
+saved="$(stty -g)"
+stty-echo
+stty cbreak
+dd if=/dev/tty bs=1 count=1 2>/dev/null
+stty-raw
+stty echo
+stty $saved
 }
 
 first_character() {
-	if [ -n "$1" ]; then
-		echo "$1" | cut -c1
-	fi
+if [ -n "$1" ]; then
+echo "$1" | cut -c1
+fi
 }
 
-# 检查是否具有 root 权限
+# Check if you have root permissions
 check_root() {
-	local user=""
-	user="$(id -un 2>/dev/null || true)"
-	if [ "$user" != "root" ]; then
-		cat >&2 <<-'EOF'
-		权限错误, 请使用 root 用户运行此脚本!
-		EOF
-		exit 1
-	fi
+local user=""
+user="$(id -un 2>/dev/null || true)"
+if [ "$user" != "root" ]; then
+cat >&2 <<-'EOF'
+Permission error, please use root user to run this script!
+EOF
+exit 1
+fi
 }
 
-# 获取服务器的IP地址
+# Get the IP address of the server
 get_server_ip() {
-	local server_ip=""
-	local interface_info=""
+local server_ip=""
+local interface_info=""
 
-	if command_exists ip; then
-		interface_info="$(ip addr)"
-	elif command_exists ifconfig; then
-		interface_info="$(ifconfig)"
-	fi
+if command_exists ip; then
+interface_info="$(ip addr)"
+elif command_exists ifconfig; then
+interface_info="$(ifconfig)"
+fi
 
-	server_ip=$(echo "$interface_info" | \
-		grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" | \
-		grep -vE "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | \
-		head -n 1)
+server_ip=$(echo "$interface_info" | \
+grep -oE "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} " | \
+grep -vE "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^ 10\.|^127\.|^255\.|^0\." | \
+head -n 1)
 
-	# 自动获取失败时，通过网站提供的 API 获取外网地址
-	if [ -z "$server_ip" ]; then
-		 server_ip="$(wget -qO- --no-check-certificate https://ipv4.icanhazip.com)"
-	fi
+# When automatic acquisition fails, obtain the external network address through the API provided by the website.
+if [ -z "$server_ip" ]; then
+server_ip="$(wget -qO- --no-check-certificate https://ipv4.icanhazip.com)"
+fi
 
-	echo "$server_ip"
+echo "$server_ip"
 }
 
-# 禁用 selinux
+# Disable selinux
 disable_selinux() {
-	local selinux_config='/etc/selinux/config'
-	if [ -s "$selinux_config" ]; then
-		if grep -q "SELINUX=enforcing" "$selinux_config"; then
-			sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' "$selinux_config"
-			setenforce 0
-		fi
-	fi
+local selinux_config='/etc/selinux/config'
+if [ -s "$selinux_config" ]; then
+if grep -q "SELINUX=enforcing" "$selinux_config"; then
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' "$selinux_config"
+setenforce 0
+fi
+fi
 }
 
-# 获取当前操作系统信息
+# Get current operating system information
 get_os_info() {
-	lsb_dist=""
-	dist_version=""
-	if command_exists lsb_release; then
-		lsb_dist="$(lsb_release -si)"
-	fi
+lsb_dist=""
+dist_version=""
+if command_exists lsb_release; then
+lsb_dist="$(lsb_release -si)"
+fi
 
-	if [ -z "$lsb_dist" ]; then
-		[ -r /etc/lsb-release ] && lsb_dist="$(. /etc/lsb-release && echo "$DISTRIB_ID")"
-		[ -r /etc/debian_version ] && lsb_dist='debian'
-		[ -r /etc/fedora-release ] && lsb_dist='fedora'
-		[ -r /etc/oracle-release ] && lsb_dist='oracleserver'
-		[ -r /etc/centos-release ] && lsb_dist='centos'
-		[ -r /etc/redhat-release ] && lsb_dist='redhat'
-		[ -r /etc/photon-release ] && lsb_dist='photon'
-		[ -r /etc/os-release ] && lsb_dist="$(. /etc/os-release && echo "$ID")"
-	fi
-	
+if [ -z "$lsb_dist" ]; then
+[ -r /etc/lsb-release ] && lsb_dist="$(. /etc/lsb-release && echo "$DISTRIB_ID")"
+[ -r /etc/debian_version ] && lsb_dist='debian'
+[ -r /etc/fedora-release ] && lsb_dist='fedora'
+[ -r /etc/oracle-release ] && lsb_dist='oracleserver'
+[ -r /etc/centos-release ] && lsb_dist='centos'
+[ -r /etc/redhat-release ] && lsb_dist='redhat'
+[ -r /etc/photon-release ] && lsb_dist='photon'
+[ -r /etc/os-release ] && lsb_dist="$(. /etc/os-release && echo "$ID")"
+fi
+ 
 
-	lsb_dist="$(echo "$lsb_dist" | tr '[:upper:]' '[:lower:]')"
+lsb_dist="$(echo "$lsb_dist" | tr '[:upper:]' '[:lower:]')"
 
-	if [ "${lsb_dist}" = "redhatenterpriseserver" ]; then
-		lsb_dist='redhat'
-	fi
+if [ "${lsb_dist}" = "redhatenterpriseserver" ]; then
+lsb_dist='redhat'
+fi
 
-	case "$lsb_dist" in
-		ubuntu)
-			if command_exists lsb_release; then
-				dist_version="$(lsb_release --codename | cut -f2)"
-			fi
-			if [ -z "$dist_version" ] && [ -r /etc/lsb-release ]; then
-				dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
-			fi
-			;;
+case "$lsb_dist" in
+ubuntu)
+if command_exists lsb_release; then
+dist_version="$(lsb_release --codename | cut -f2)"
+fi
+if [ -z "$dist_version" ] && [ -r /etc/lsb-release ]; then
+dist_version="$(. /etc/lsb-release && echo "$DISTRIB_CODENAME")"
+fi
+;;
 
-		debian|raspbian)
-			dist_version="$(cat /etc/debian_version | sed 's/\/.*//' | sed 's/\..*//')"
-			case "$dist_version" in
-				9)
-					dist_version="stretch"
-					;;
-				8)
-					dist_version="jessie"
-					;;
-				7)
-					dist_version="wheezy"
-					;;
-			esac
-			;;
+debian|raspbian)
+dist_version="$(cat /etc/debian_version | sed 's/\/.*//' | sed 's/\..*//')"
+case "$dist_version" in
+9)
+dist_version="stretch"
+;;
+8)
+dist_version="jessie"
+;;
+7)
+dist_version="wheezy"
+;;
+esac
+;;
 
-		oracleserver)
-			lsb_dist="oraclelinux"
-			dist_version="$(rpm -q --whatprovides redhat-release --queryformat "%{VERSION}\n" | sed 's/\/.*//' | sed 's/\..*//' | sed 's/Server*//')"
-			;;
+oracleserver)
+lsb_dist="oraclelinux"
+dist_version="$(rpm -q --whatprovides redhat-release --queryformat "%{VERSION}\n" | sed 's/\/.*//' | sed 's/\..*//' | sed 's/Server*//')"
+;;
 
-		fedora|centos|redhat)
-			dist_version="$(rpm -q --whatprovides ${lsb_dist}-release --queryformat "%{VERSION}\n" | sed 's/\/.*//' | sed 's/\..*//' | sed 's/Server*//' | sort | tail -1)"
-			;;
+fedora|centos|redhat)
+dist_version="$(rpm -q --whatprovides ${lsb_dist}-release --queryformat "%{VERSION}\n" | sed 's/\/.*//' | sed 's/\..*/ /' | sed 's/Server*//' | sort | tail -1)"
+;;
 
-		"vmware photon")
-			lsb_dist="photon"
-			dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
-			;;
+"vmware photon")
+lsb_dist="photon"
+dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+;;
 
-		*)
-			if command_exists lsb_release; then
-				dist_version="$(lsb_release --codename | cut -f2)"
-			fi
-			if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
-				dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
-			fi
-			;;
-	esac
+*)
+if command_exists lsb_release; then
+dist_version="$(lsb_release --codename | cut -f2)"
+fi
+if [ -z "$dist_version" ] && [ -r /etc/os-release ]; then
+dist_version="$(. /etc/os-release && echo "$VERSION_ID")"
+fi
+;;
+esac
 
-	if [ -z "$lsb_dist" ] || [ -z "$dist_version" ]; then
-		cat >&2 <<-EOF
-		无法确定服务器系统版本信息。
-		请联系脚本作者。
-		EOF
-		exit 1
-	fi
+if [ -z "$lsb_dist" ] || [ -z "$dist_version" ]; then
+cat >&2 <<-EOF
+Unable to determine server system version information.
+Please contact the script author.
+EOF
+exit 1
+fi
 }
 
-# 获取服务器架构和 Kcptun 服务端文件后缀名
+# Get the server architecture and Kcptun server file suffix name
 get_arch() {
-	architecture="$(uname -m)"
-	case "$architecture" in
-		amd64|x86_64)
-			spruce_type='linux-amd64'
-			file_suffix='linux_amd64'
-			;;
-		i386|i486|i586|i686|x86)
-			spruce_type='linux-386'
-			file_suffix='linux_386'
-			;;
-		*)
-			cat 1>&2 <<-EOF
-			当前脚本仅支持 32 位 和 64 位系统
-			你的系统为: $architecture
-			EOF
-			exit 1
-			;;
-	esac
+architecture="$(uname -m)"
+case "$architecture" in
+amd64|x86_64)
+spruce_type='linux-amd64'
+file_suffix='linux_amd64'
+;;
+i386|i486|i586|i686|x86)
+spruce_type='linux-386'
+file_suffix='linux_386'
+;;
+*)
+cat 1>&2 <<-EOF
+The current script only supports 32-bit and 64-bit systems
+Your system is: $architecture
+EOF
+exit 1
+;;
+esac
 }
 
-# 获取 API 内容
+# Get API content
 get_content() {
-	local url="$1"
-	local retry=0
+local url="$1"
+local retry=0
 
-	local content=""
-	get_network_content() {
-		if [ $retry -ge 3 ]; then
-			cat >&2 <<-EOF
-			获取网络信息失败!
-			URL: ${url}
-			安装脚本需要能访问到 github.com，请检查服务器网络。
-			注意: 一些国内服务器可能无法正常访问 github.com。
-			EOF
-			exit 1
-		fi
+local content=""
+get_network_content() {
+if [ $retry -ge 3 ]; then
+cat >&2 <<-EOF
+Failed to obtain network information!
+URL: ${url}
+The installation script needs to be able to access github.com, please check the server network.
+Note: Some domestic servers may not be able to access github.com normally.
+EOF
+exit 1
+fi
 
-		# 将所有的换行符替换为自定义标签，防止 jq 解析失败
-		content="$(wget -qO- --no-check-certificate "$url" | sed -r 's/(\\r)?\\n/#br#/g')"
+# Replace all line breaks with custom tags to prevent jq parsing failure
+content="$(wget -qO- --no-check-certificate "$url" | sed -r 's/(\\r)?\\n/#br#/g')"
 
-		if [ "$?" != "0" ] || [ -z "$content" ]; then
-			retry=$(expr $retry + 1)
-			get_network_content
-		fi
-	}
-
-	get_network_content
-	echo "$content"
+if [ "$?" != "0" ] || [ -z "$content" ]; then
+retry=$(expr $retry + 1)
+get_network_content
+fi
 }
 
-# 下载文件， 默认重试 3 次
+get_network_content
+echo "$content"
+}
+
+# Download files, retry 3 times by default
 download_file() {
-	local url="$1"
-	local file="$2"
-	local verify="$3"
-	local retry=0
-	local verify_cmd=""
+local url="$1"
+local file="$2"
+local verify="$3"
+local retry=0
+local verify_cmd=""
 
-	verify_file() {
-		if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
-			if [ "${#verify}" = "32" ]; then
-				verify_cmd="md5sum"
-			elif [ "${#verify}" = "40" ]; then
-				verify_cmd="sha1sum"
-			elif [ "${#verify}" = "64" ]; then
-				verify_cmd="sha256sum"
-			elif [ "${#verify}" = "128" ]; then
-				verify_cmd="sha512sum"
-			fi
+verify_file() {
+if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
+if [ "${#verify}" = "32" ]; then
+verify_cmd="md5sum"
+elif [ "${#verify}" = "40" ]; then
+verify_cmd="sha1sum"
+elif [ "${#verify}" = "64" ]; then
+verify_cmd="sha256sum"
+elif [ "${#verify}" = "128" ]; then
+verify_cmd="sha512sum"
+fi
 
-			if [ -n "$verify_cmd" ] && ! command_exists "$verify_cmd"; then
-				verify_cmd=""
-			fi
-		fi
+if [ -n "$verify_cmd" ] && ! command_exists "$verify_cmd"; then
+verify_cmd=""
+fi
+fi
 
-		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
-			(
-				set -x
-				echo "${verify}  ${file}" | $verify_cmd -c
-			)
-			return $?
-		fi
+if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
+(
+set -x
+echo "${verify} ${file}" | $verify_cmd -c
+)
+return $?
+fi
 
-		return 1
-	}
-
-	download_file_to_path() {
-		if verify_file; then
-			return 0
-		fi
-
-		if [ $retry -ge 3 ]; then
-			rm -f "$file"
-			cat >&2 <<-EOF
-			文件下载或校验失败! 请重试。
-			URL: ${url}
-			EOF
-
-			if [ -n "$verify_cmd" ]; then
-				cat >&2 <<-EOF
-				如果下载多次失败，你可以手动下载文件:
-				1. 下载文件 ${url}
-				2. 将文件重命名为 $(basename "$file")
-				3. 上传文件至目录 $(dirname "$file")
-				4. 重新运行安装脚本
-
-				注: 文件目录 . 表示当前目录，.. 表示当前目录的上级目录
-				EOF
-			fi
-			exit 1
-		fi
-
-		( set -x; wget -O "$file" --no-check-certificate "$url" )
-		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
-			retry=$(expr $retry + 1)
-			download_file_to_path
-		fi
-	}
-
-	download_file_to_path
+return 1
 }
 
-# 安装 jq 用于解析和生成 json 文件
-# jq 已进入大部分 Linux 发行版的软件仓库，
-#  	URL: https://stedolan.github.io/jq/download/
-# 但为了防止有些系统安装失败，还是通过脚本来提供了。
+download_file_to_path() {
+if verify_file; then
+return 0
+fi
+
+if [ $retry -ge 3 ]; then
+rm -f "$file"
+cat >&2 <<-EOF
+File download or verification failed! Please try again.
+URL: ${url}
+EOF
+
+if [ -n "$verify_cmd" ]; then
+cat >&2 <<-EOF
+If the download fails multiple times, you can download the file manually:
+1. Download file ${url}
+2. Rename the file to $(basename "$file")
+3. Upload the file to the directory $(dirname "$file")
+4. Rerun the installation script
+
+Note: File directory. represents the current directory, .. represents the superior directory of the current directory.
+EOF
+fi
+exit 1
+fi
+
+( set -x; wget -O "$file" --no-check-certificate "$url" )
+if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
+retry=$(expr $retry + 1)
+download_file_to_path
+fi
+}
+
+download_file_to_path
+}
+
+#Install jq for parsing and generating json files
+# jq has entered the software repositories of most Linux distributions.
+# URL: https://stedolan.github.io/jq/download/
+# However, in order to prevent some system installation failures, it is still provided through a script.
 install_jq() {
-	check_jq() {
-		if [ ! -f "$JQ_BIN" ]; then
-			return 1
-		fi
+check_jq() {
+if [ ! -f "$JQ_BIN" ]; then
+return 1
+fi
 
-		[ ! -x "$JQ_BIN" ] && chmod a+x "$JQ_BIN"
+[ ! -x "$JQ_BIN" ] && chmod a+x "$JQ_BIN"
 
-		if ( $JQ_BIN --help 2>/dev/null | grep -q "JSON" ); then
-			is_checked_jq="true"
-			return 0
-		else
-			rm -f "$JQ_BIN"
-			return 1
-		fi
-	}
-
-	if [ -z "$is_checked_jq" ] && ! check_jq; then
-		local dir=""
-		dir="$(dirname "$JQ_BIN")"
-		if [ ! -d "$dir" ]; then
-			(
-				set -x
-				mkdir -p "$dir"
-			)
-		fi
-
-		if [ -z "$architecture" ]; then
-			get_arch
-		fi
-
-		case "$architecture" in
-			amd64|x86_64)
-				download_file "$JQ_LINUX64_URL" "$JQ_BIN" "$JQ_LINUX64_HASH"
-				;;
-			i386|i486|i586|i686|x86)
-				download_file "$JQ_LINUX32_URL" "$JQ_BIN" "$JQ_LINUX32_HASH"
-				;;
-		esac
-
-		if ! check_jq; then
-			cat >&2 <<-EOF
-			未找到适用于当前系统的 JSON 解析软件 jq
-			EOF
-			exit 1
-		fi
-
-		return 0
-	fi
+if ( $JQ_BIN --help 2>/dev/null | grep -q "JSON" ); then
+is_checked_jq="true"
+return 0
+else
+rm -f "$JQ_BIN"
+return 1
+fi
 }
 
-# 读取 json 文件中某一项的值
+if [ -z "$is_checked_jq" ] && ! check_jq; then
+local dir=""
+dir="$(dirname "$JQ_BIN")"
+if [ ! -d "$dir" ]; then
+(
+set -x
+mkdir -p "$dir"
+)
+fi
+
+if [ -z "$architecture" ]; then
+get_arch
+fi
+
+case "$architecture" in
+amd64|x86_64)
+download_file "$JQ_LINUX64_URL" "$JQ_BIN" "$JQ_LINUX64_HASH"
+;;
+i386|i486|i586|i686|x86)
+download_file "$JQ_LINUX32_URL" "$JQ_BIN" "$JQ_LINUX32_HASH"
+;;
+esac
+
+if ! check_jq; then
+cat >&2 <<-EOF
+No JSON parsing software jq found for the current system
+EOF
+exit 1
+fi
+
+return 0
+fi
+}
+
+# Read the value of an item in the json file
 get_json_string() {
-	install_jq
+install_jq
 
-	local content="$1"
-	local selector="$2"
-	local regex="$3"
+local content="$1"
+local selector="$2"
+local regex="$3"
 
-	local str=""
-	if [ -n "$content" ]; then
-		str="$(echo "$content" | $JQ_BIN -r "$selector" 2>/dev/null)"
+local str=""
+if [ -n "$content" ]; then
+str="$(echo "$content" | $JQ_BIN -r "$selector" 2>/dev/null)"
 
-		if [ -n "$str" ] && [ -n "$regex" ]; then
-			str="$(echo "$str" | grep -oE "$regex")"
-		fi
-	fi
-	echo "$str"
+if [ -n "$str" ] && [ -n "$regex" ]; then
+str="$(echo "$str" | grep -oE "$regex")"
+fi
+fi
+echo "$str"
 }
 
-# 获取当前实例的配置文件路径，传入参数：
-# * config: kcptun 服务端配置文件
-# * log: kcptun 日志文件路径
-# * snmp: kcptun snmp 日志文件路径
-# * supervisor: 实例的 supervisor 文件路径
+# Get the configuration file path of the current instance and pass in the parameters:
+# * config: kcptun server configuration file
+# * log: kcptun log file path
+# * snmp: kcptun snmp log file path
+# * supervisor: supervisor file path of the instance
 get_current_file() {
-	case "$1" in
-		config)
-			printf '%s/server-config%s.json' "$KCPTUN_INSTALL_DIR" "$current_instance_id"
-			;;
-		log)
-			printf '%s/server%s.log' "$KCPTUN_LOG_DIR" "$current_instance_id"
-			;;
-		snmp)
-			printf '%s/snmplog%s.log' "$KCPTUN_LOG_DIR" "$current_instance_id"
-			;;
-		supervisor)
-			printf '/etc/supervisor/conf.d/kcptun%s.conf' "$current_instance_id"
-			;;
-	esac
+case "$1" in
+config)
+printf '%s/server-config%s.json' "$KCPTUN_INSTALL_DIR" "$current_instance_id"
+;;
+log)
+printf '%s/server%s.log' "$KCPTUN_LOG_DIR" "$current_instance_id"
+;;
+snmp)
+printf '%s/snmplog%s.log' "$KCPTUN_LOG_DIR" "$current_instance_id"
+;;
+supervisor)
+printf '/etc/supervisor/conf.d/kcptun%s.conf' "$current_instance_id"
+;;
+esac
 }
 
-# 获取实例数量
+# Get the number of instances
 get_instance_count() {
-	if [ -d '/etc/supervisor/conf.d/' ]; then
-		ls -l '/etc/supervisor/conf.d/' | grep "^-" | awk '{print $9}' | grep -cP "^kcptun\d*\.conf$"
-	else
-		echo "0"
-	fi
+if [ -d '/etc/supervisor/conf.d/' ]; then
+ls -l '/etc/supervisor/conf.d/' | grep "^-" | awk '{print $9}' | grep -cP "^kcptun\d*\.conf$"
+else
+echo "0"
+fi
 }
 
-# 通过 API 获取对应版本号 Kcptun 的 release 信息
-# 传入 Kcptun 版本号
+# Obtain the release information of the corresponding version number Kcptun through API
+# Pass in the Kcptun version number
 get_kcptun_version_info() {
-	local request_version="$1"
+local request_version="$1"
 
-	local version_content=""
-	if [ -n "$request_version" ]; then
-		local json_content=""
-		json_content="$(get_content "$KCPTUN_RELEASES_URL")"
-		local version_selector=".[] | select(.tag_name == \"${request_version}\")"
-		version_content="$(get_json_string "$json_content" "$version_selector")"
-	else
-		version_content="$(get_content "$KCPTUN_LATEST_RELEASE_URL")"
-	fi
+local version_content=""
+if [ -n "$request_version" ]; then
+local json_content=""
+json_content="$(get_content "$KCPTUN_RELEASES_URL")"
+local version_selector=".[] | select(.tag_name == \"${request_version}\")"
+version_content="$(get_json_string "$json_content" "$version_selector")"
+else
+version_content="$(get_content "$KCPTUN_LATEST_RELEASE_URL")"
+fi
 
-	if [ -z "$version_content" ]; then
-		return 1
-	fi
+if [ -z "$version_content" ]; then
+return 1
+fi
 
-	if [ -z "$spruce_type" ]; then
-		get_arch
-	fi
+if [ -z "$spruce_type" ]; then
+get_arch
+fi
 
-	local url_selector=".assets[] | select(.name | contains(\"${spruce_type}\")) | .browser_download_url"
-	kcptun_release_download_url="$(get_json_string "$version_content" "$url_selector")"
+local url_selector=".assets[] | select(.name | contains(\"${spruce_type}\")) | .browser_download_url"
+kcptun_release_download_url="$(get_json_string "$version_content" "$url_selector")"
 
-	if [ -z "$kcptun_release_download_url" ]; then
-		return 1
-	fi
+if [ -z "$kcptun_release_download_url" ]; then
+return 1
+fi
 
-	kcptun_release_tag_name="$(get_json_string "$version_content" '.tag_name')"
-	kcptun_release_name="$(get_json_string "$version_content" '.name')"
-	kcptun_release_prerelease="$(get_json_string "$version_content" '.prerelease')"
-	kcptun_release_publish_time="$(get_json_string "$version_content" '.published_at')"
-	kcptun_release_html_url="$(get_json_string "$version_content" '.html_url')"
+kcptun_release_tag_name="$(get_json_string "$version_content" '.tag_name')"
+kcptun_release_name="$(get_json_string "$version_content" '.name')"
+kcptun_release_prerelease="$(get_json_string "$version_content" '.prerelease')"
+kcptun_release_publish_time="$(get_json_string "$version_content" '.published_at')"
+kcptun_release_html_url="$(get_json_string "$version_content" '.html_url')"
 
-	local body_content="$(get_json_string "$version_content" '.body')"
-	local body="$(echo "$body_content" | sed 's/#br#/\n/g' | grep -vE '(^```)|(^>)|(^[[:space:]]*$)|(SUM$)')"
+local body_content="$(get_json_string "$version_content" '.body')"
+local body="$(echo "$body_content" | sed 's/#br#/\n/g' | grep -vE '(^```)|(^>)|(^[[:space:] ]*$)|(SUM$)')"
 
-	kcptun_release_body="$(echo "$body" | grep -vE "[0-9a-zA-Z]{32,}")"
+kcptun_release_body="$(echo "$body" | grep -vE "[0-9a-zA-Z]{32,}")"
 
-	local file_verify=""
-	file_verify="$(echo "$body" | grep "$spruce_type")"
+local file_verify=""
+file_verify="$(echo "$body" | grep "$spruce_type")"
 
-	if [ -n "$file_verify" ]; then
-		local i="1"
-		local split=""
-		while true
-		do
-			split="$(echo "$file_verify" | cut -d ' ' -f$i)"
+if [ -n "$file_verify" ]; then
+local i="1"
+local split=""
+while true
+do
+split="$(echo "$file_verify" | cut -d ' ' -f$i)"
 
-			if [ -n "$split" ] && ( echo "$split" | grep -qE "^[0-9a-zA-Z]{32,}$" ); then
-				kcptun_release_verify="$split"
-				break
-			elif [ -z "$split" ]; then
-				break
-			fi
+if [ -n "$split" ] && ( echo "$split" | grep -qE "^[0-9a-zA-Z]{32,}$" ); then
+kcptun_release_verify="$split"
+break
+elif [ -z "$split" ]; then
+break
+fi
 
-			i=$(expr $i + 1)
-		done
-	fi
+i=$(expr $i + 1)
+done
+fi
 
-	return 0
+return 0
 }
 
-# 获取脚本版本信息
+# Get script version information
 get_shell_version_info() {
-	local shell_version_content=""
-	shell_version_content="$(get_content "$SHELL_VERSION_INFO_URL")"
-	if [ -z "$shell_version_content" ]; then
-		return 1
-	fi
+local shell_version_content=""
+shell_version_content="$(get_content "$SHELL_VERSION_INFO_URL")"
+if [ -z "$shell_version_content" ]; then
+return 1
+fi
 
-	new_shell_version="$(get_json_string "$shell_version_content" '.shell_version' '[0-9]+')"
-	new_config_version="$(get_json_string "$shell_version_content" '.config_version' '[0-9]+')"
-	new_init_version="$(get_json_string "$shell_version_content" '.init_version' '[0-9]+')"
+new_shell_version="$(get_json_string "$shell_version_content" '.shell_version' '[0-9]+')"
+new_config_version="$(get_json_string "$shell_version_content" '.config_version' '[0-9]+')"
+new_init_version="$(get_json_string "$shell_version_content" '.init_version' '[0-9]+')"
 
-	shell_change_log="$(get_json_string "$shell_version_content" '.change_log')"
-	config_change_log="$(get_json_string "$shell_version_content" '.config_change_log')"
-	init_change_log="$(get_json_string "$shell_version_content" '.init_change_log')"
-	new_shell_url="$(get_json_string "$shell_version_content" '.shell_url')"
+shell_change_log="$(get_json_string "$shell_version_content" '.change_log')"
+config_change_log="$(get_json_string "$shell_version_content" '.config_change_log')"
+init_change_log="$(get_json_string "$shell_version_content" '.init_change_log')"
+new_shell_url="$(get_json_string "$shell_version_content" '.shell_url')"
 
 
-	if [ -z "$new_shell_version" ]; then
-		new_shell_version="0"
-	fi
-	if [ -z "$new_config_version" ]; then
-		new_config_version="0"
-	fi
-	if [ -z "$new_init_version" ]; then
-		new_init_version="0"
-	fi
+if [ -z "$new_shell_version" ]; then
+new_shell_version="0"
+fi
+if [ -z "$new_config_version" ]; then
+new_config_version="0"
+fi
+if [ -z "$new_init_version" ]; then
+new_init_version="0"
+fi
 
-	return 0
+return 0
 }
 
-# 下载并安装 Kcptun
+# Download and install Kcptun
 install_kcptun() {
-	if [ -z "$kcptun_release_download_url" ]; then
-		get_kcptun_version_info "$1"
+if [ -z "$kcptun_release_download_url" ]; then
+get_kcptun_version_info "$1"
 
-		if [ "$?" != "0" ]; then
-			cat >&2 <<-'EOF'
-			获取 Kcptun 版本信息或下载地址失败!
-			可能是 GitHub 改版，或者从网络获取到的内容不正确。
-			请联系脚本作者。
-			EOF
-			exit 1
-		fi
-	fi
+if [ "$?" != "0" ]; then
+cat >&2 <<-'EOF'
+Failed to obtain Kcptun version information or download address!
+It may be that GitHub has changed its version, or the content obtained from the Internet is incorrect.
+Please contact the script author.
+EOF
+exit 1
+fi
+fi
 
-	local kcptun_file_name="kcptun-${kcptun_release_tag_name}.tar.gz"
-	download_file "$kcptun_release_download_url" "$kcptun_file_name" "$kcptun_release_verify"
+local kcptun_file_name="kcptun-${kcptun_release_tag_name}.tar.gz"
+download_file "$kcptun_release_download_url" "$kcptun_file_name" "$kcptun_release_verify"
 
-	if [ ! -d "$KCPTUN_INSTALL_DIR" ]; then
-		(
-			set -x
-			mkdir -p "$KCPTUN_INSTALL_DIR"
-		)
-	fi
+if [ ! -d "$KCPTUN_INSTALL_DIR" ]; then
+(
+set -x
+mkdir -p "$KCPTUN_INSTALL_DIR"
+)
+fi
 
-	if [ ! -d "$KCPTUN_LOG_DIR" ]; then
-		(
-			set -x
-			mkdir -p "$KCPTUN_LOG_DIR"
-			chmod a+w "$KCPTUN_LOG_DIR"
-		)
-	fi
+if [ ! -d "$KCPTUN_LOG_DIR" ]; then
+(
+set -x
+mkdir -p "$KCPTUN_LOG_DIR"
+chmod a+w "$KCPTUN_LOG_DIR"
+)
+fi
 
-	(
-		set -x
-		tar -zxf "$kcptun_file_name" -C "$KCPTUN_INSTALL_DIR"
-		sleep 3
-	)
+(
+set -x
+tar -zxf "$kcptun_file_name" -C "$KCPTUN_INSTALL_DIR"
+sleep 3
+)
 
-	local kcptun_server_file=""
-	kcptun_server_file="$(get_kcptun_server_file)"
+local kcptun_server_file=""
+kcptun_server_file="$(get_kcptun_server_file)"
 
-	if [ ! -f "$kcptun_server_file" ]; then
-		cat >&2 <<-'EOF'
-		未在解压文件中找到 Kcptun 服务端执行文件!
-		通常这不会发生，可能的原因是 Kcptun 作者打包文件的时候更改了文件名。
-		你可以尝试重新安装，或者联系脚本作者。
-		EOF
-		exit 1
-	fi
+if [ ! -f "$kcptun_server_file" ]; then
+cat >&2 <<-'EOF'
+The Kcptun server executable file was not found in the decompressed file!
+Usually this does not happen, the possible reason is that the Kcptun author changed the file name when packaging it.
+You can try reinstalling, or contact the script author.
+EOF
+exit 1
+fi
 
-	chmod a+x "$kcptun_server_file"
+chmod a+x "$kcptun_server_file"
 
-	if [ -z "$(get_installed_version)" ]; then
-		cat >&2 <<-'EOF'
-		无法找到适合当前服务器的 kcptun 可执行文件
-		你可以尝试从源码编译。
-		EOF
-		exit 1
-	fi
+if [ -z "$(get_installed_version)" ]; then
+cat >&2 <<-'EOF'
+Unable to find kcptun executable for current server
+You can try compiling from source.
+EOF
+exit 1
+fi
 
-	rm -f "$kcptun_file_name" "${KCPTUN_INSTALL_DIR}/client_$file_suffix"
+rm -f "$kcptun_file_name" "${KCPTUN_INSTALL_DIR}/client_$file_suffix"
 }
 
-# 安装依赖软件
+#Install dependent software
 install_deps() {
-	if [ -z "$lsb_dist" ]; then
-		get_os_info
-	fi
+if [ -z "$lsb_dist" ]; then
+get_os_info
+fi
 
-	case "$lsb_dist" in
-		ubuntu|debian|raspbian)
-			local did_apt_get_update=""
-			apt_get_update() {
-				if [ -z "$did_apt_get_update" ]; then
-					( set -x; sleep 3; apt-get update )
-					did_apt_get_update=1
-				fi
-			}
-
-			if ! command_exists wget; then
-				apt_get_update
-				( set -x; sleep 3; apt-get install -y -q wget ca-certificates )
-			fi
-
-			if ! command_exists awk; then
-				apt_get_update
-				( set -x; sleep 3; apt-get install -y -q gawk )
-			fi
-
-			if ! command_exists tar; then
-				apt_get_update
-				( set -x; sleep 3; apt-get install -y -q tar )
-			fi
-
-			if ! command_exists pip; then
-				apt_get_update
-				( set -x; sleep 3; apt-get install -y -q python-pip || true )
-			fi
-
-			if ! command_exists python; then
-				apt_get_update
-				( set -x; sleep 3; apt-get install -y -q python )
-			fi
-			;;
-		fedora|centos|redhat|oraclelinux|photon)
-			if [ "$lsb_dist" = "fedora" ] && [ "$dist_version" -ge "22" ]; then
-				if ! command_exists wget; then
-					( set -x; sleep 3; dnf -y -q install wget ca-certificates )
-				fi
-
-				if ! command_exists awk; then
-					( set -x; sleep 3; dnf -y -q install gawk )
-				fi
-
-				if ! command_exists tar; then
-					( set -x; sleep 3; dnf -y -q install tar )
-				fi
-
-				if ! command_exists pip; then
-					( set -x; sleep 3; dnf -y -q install python-pip || true )
-				fi
-
-				if ! command_exists python; then
-					( set -x; sleep 3; dnf -y -q install python )
-				fi
-			elif [ "$lsb_dist" = "photon" ]; then
-				if ! command_exists wget; then
-					( set -x; sleep 3; tdnf -y install wget ca-certificates )
-				fi
-
-				if ! command_exists awk; then
-					( set -x; sleep 3; tdnf -y install gawk )
-				fi
-
-				if ! command_exists tar; then
-					( set -x; sleep 3; tdnf -y install tar )
-				fi
-
-				if ! command_exists pip; then
-					( set -x; sleep 3; tdnf -y install python-pip || true )
-				fi
-
-				if ! command_exists python; then
-					( set -x; sleep 3; tdnf -y install python )
-				fi
-			else
-				if ! command_exists wget; then
-					( set -x; sleep 3; yum -y -q install wget ca-certificates )
-				fi
-
-				if ! command_exists awk; then
-					( set -x; sleep 3; yum -y -q install gawk )
-				fi
-
-				if ! command_exists tar; then
-					( set -x; sleep 3; yum -y -q install tar )
-				fi
-
-				# CentOS 等红帽系操作系统的软件库中可能不包括 python-pip
-				# 可以先安装 epel-release
-				if ! command_exists pip; then
-					( set -x; sleep 3; yum -y -q install python-pip || true )
-				fi
-
-				# 如果 python-pip 安装失败，检测是否已安装 python 环境
-				if ! command_exists python; then
-					( set -x; sleep 3; yum -y -q install python )
-				fi
-			fi
-			;;
-		*)
-			cat >&2 <<-EOF
-			暂时不支持当前系统：${lsb_dist} ${dist_version}
-			EOF
-
-			exit 1
-			;;
-	esac
-
-	# 这里判断了是否存在安装失败的软件包，但是默认不处理 python-pip 的安装失败，
-	# 接下来会统一检测并再次安装 pip 命令
-	if [ "$?" != 0 ]; then
-		cat >&2 <<-'EOF'
-		一些依赖软件安装失败，
-		请查看日志检查错误。
-		EOF
-		exit 1
-	fi
-
-	install_jq
+case "$lsb_dist" in
+ubuntu|debian|raspbian)
+local did_apt_get_update=""
+apt_get_update() {
+if [ -z "$did_apt_get_update" ]; then
+(set -x; sleep 3; apt-get update)
+did_apt_get_update=1
+fi
 }
 
-# 安装 supervisor
+if ! command_exists wget; then
+apt_get_update
+( set -x; sleep 3; apt-get install -y -q wget ca-certificates )
+fi
+
+if ! command_exists awk; then
+apt_get_update
+( set -x; sleep 3; apt-get install -y -q gawk )
+fi
+
+if ! command_exists tar; then
+apt_get_update
+( set -x; sleep 3; apt-get install -y -q tar )
+fi
+
+if ! command_exists pip; then
+apt_get_update
+( set -x; sleep 3; apt-get install -y -q python-pip || true )
+fi
+
+if ! command_exists python; then
+apt_get_update
+( set -x; sleep 3; apt-get install -y -q python )
+fi
+;;
+fedora|centos|redhat|oraclelinux|photon)
+if [ "$lsb_dist" = "fedora" ] && [ "$dist_version" -ge "22" ]; then
+if ! command_exists wget; then
+( set -x; sleep 3; dnf -y -q install wget ca-certificates )
+fi
+
+if ! command_exists awk; then
+( set -x; sleep 3; dnf -y -q install gawk )
+fi
+
+if ! command_exists tar; then
+( set -x; sleep 3; dnf -y -q install tar )
+fi
+
+if ! command_exists pip; then
+( set -x; sleep 3; dnf -y -q install python-pip || true )
+fi
+
+if ! command_exists python; then
+(set -x; sleep 3; dnf -y -q install python)
+fi
+elif [ "$lsb_dist" = "photon" ]; then
+if ! command_exists wget; then
+( set -x; sleep 3; tdnf -y install wget ca-certificates )
+fi
+
+if ! command_exists awk; then
+( set -x; sleep 3; tdnf -y install gawk )
+fi
+
+if ! command_exists tar; then
+( set -x; sleep 3; tdnf -y install tar )
+fi
+
+if ! command_exists pip; then
+( set -x; sleep 3; tdnf -y install python-pip || true )
+fi
+
+if ! command_exists python; then
+(set -x; sleep 3; tdnf -y install python)
+fi
+else
+if ! command_exists wget; then
+( set -x; sleep 3; yum -y -q install wget ca-certificates )
+fi
+
+if ! command_exists awk; then
+( set -x; sleep 3; yum -y -q install gawk )
+fi
+
+if ! command_exists tar; then
+( set -x; sleep 3; yum -y -q install tar )
+fi
+
+# The software libraries of Red Hat operating systems such as CentOS may not include python-pip
+# You can install epel-release first
+if ! command_exists pip; then
+( set -x; sleep 3; yum -y -q install python-pip || true )
+fi
+
+# If the python-pip installation fails, check whether the python environment has been installed
+if ! command_exists python; then
+(set -x; sleep 3; yum -y -q install python)
+fi
+fi
+;;
+*)
+cat >&2 <<-EOF
+The current system is not supported at the moment: ${lsb_dist} ${dist_version}
+EOF
+
+exit 1
+;;
+esac
+
+# This determines whether there are software packages that failed to install, but the installation failure of python-pip is not handled by default.
+# Next, the pip command will be uniformly detected and installed again.
+if [ "$?" != 0 ]; then
+cat >&2 <<-'EOF'
+The installation of some dependent software failed,
+Please check the logs to check for errors.
+EOF
+exit 1
+fi
+
+install_jq
+}
+
+# Install supervisor
 install_supervisor() {
-	if [ -s /etc/supervisord.conf ] && command_exists supervisord; then
-		cat >&2 <<-EOF
-		检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
-		推荐你备份当前 Supervisor 配置后卸载原有版本
-		已安装的 Supervisor 配置文件路径为: /etc/supervisord.conf
-		通过本脚本安装的 Supervisor 配置文件路径为: /etc/supervisor/supervisord.conf
-		你可以使用以下命令来备份原有配置文件:
+if [ -s /etc/supervisord.conf ] && command_exists supervisord; then
+cat >&2 <<-EOF
+It is detected that you have installed Supervisor through other methods, which will conflict with the Supervisor installed by this script.
+It is recommended that you back up the current Supervisor configuration and then uninstall the original version.
+The installed Supervisor configuration file path is: /etc/supervisord.conf
+The path of the Supervisor configuration file installed through this script is: /etc/supervisor/supervisord.conf
+You can use the following command to back up the original configuration file:
 
-		    mv /etc/supervisord.conf /etc/supervisord.conf.bak
-		EOF
+mv /etc/supervisord.conf /etc/supervisord.conf.bak
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 
-	if ! command_exists python; then
-		cat >&2 <<-'EOF'
-		python 环境未安装，并且自动安装失败，请手动安装 python 环境。
-		EOF
+if ! command_exists python; then
+cat >&2 <<-'EOF'
+The python environment is not installed and the automatic installation fails. Please install the python environment manually.
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 
-	local python_version="$(python -V 2>&1)"
+local python_version="$(python -V 2>&1)"
 
-	if [ "$?" != "0" ] || [ -z "$python_version" ]; then
-		cat >&2 <<-'EOF'
-		python 环境已损坏，无法通过 python -V 来获取版本号。
-		请手动重装 python 环境。
-		EOF
+if [ "$?" != "0" ] || [ -z "$python_version" ]; then
+cat >&2 <<-'EOF'
+The python environment is damaged and the version number cannot be obtained through python -V.
+Please reinstall the python environment manually.
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 
-	local version_string="$(echo "$python_version" | cut -d' ' -f2 | head -n1)"
-	local major_version="$(echo "$version_string" | cut -d'.' -f1)"
-	local minor_version="$(echo "$version_string" | cut -d'.' -f2)"
+local version_string="$(echo "$python_version" | cut -d' ' -f2 | head -n1)"
+local major_version="$(echo "$version_string" | cut -d'.' -f1)"
+local minor_version="$(echo "$version_string" | cut -d'.' -f2)"
 
-	if [ -z "$major_version" ] || [ -z "$minor_version" ] || \
-		! ( is_number "$major_version" ); then
-		cat >&2 <<-EOF
-		获取 python 大小版本号失败：${python_version}
-		EOF
+if [ -z "$major_version" ] || [ -z "$minor_version" ] || \
+! ( is_number "$major_version" ); then
+cat >&2 <<-EOF
+Failed to obtain python size version number: ${python_version}
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 
-	local is_python_26="false"
+local is_python_26="false"
 
-	if [ "$major_version" -lt "2" ] || ( \
-		[ "$major_version" = "2" ] && [ "$minor_version" -lt "6" ] ); then
-		cat >&2 <<-EOF
-		不支持的 python 版本 ${version_string}，当前仅支持 python 2.6 及以上版本的安装。
-		EOF
+if [ "$major_version" -lt "2" ] || ( \
+[ "$major_version" = "2" ] && [ "$minor_version" -lt "6" ] ); then
+cat >&2 <<-EOF
+Unsupported python version ${version_string}, currently only supports the installation of python 2.6 and above.
+EOF
 
-		exit 1
-	elif [ "$major_version" = "2" ] && [ "$minor_version" = "6" ]; then
-		is_python_26="true"
+exit 1
+elif [ "$major_version" = "2" ] && [ "$minor_version" = "6" ]; then
+is_python_26="true"
 
-		cat >&1 <<-EOF
-		注意：当前服务器的 python 版本为 ${version_string},
-		脚本对 python 2.6 及以下版本的支持可能会失效，
-		请尽快升级 python 版本到 >= 2.7.9 或 >= 3.4。
-		EOF
+cat >&1 <<-EOF
+Note: The python version of the current server is ${version_string},
+The script's support for python 2.6 and below may not work.
+Please upgrade the python version to >= 2.7.9 or >= 3.4 as soon as possible.
+EOF
 
-		any_key_to_continue
-	fi
+any_key_to_continue
+fi
 
-	if ! command_exists pip; then
-		# 如果没有监测到 pip 命令，但当前服务器已经安装 python
-		# 使用 get-pip.py 脚本来安装 pip 命令
-		if [ "$is_python_26" = "true" ]; then
-			(
-				set -x
-				wget -qO- --no-check-certificate https://bootstrap.pypa.io/2.6/get-pip.py | python
-			)
-		else
-			(
-				set -x
-				wget -qO- --no-check-certificate https://bootstrap.pypa.io/get-pip.py | python
-			)
-		fi
-	fi
+if ! command_exists pip; then
+# If the pip command is not detected, but python is already installed on the current server
+# Use the get-pip.py script to install the pip command
+if [ "$is_python_26" = "true" ]; then
+(
+set -x
+wget -qO- --no-check-certificate https://bootstrap.pypa.io/2.6/get-pip.py | python
+)
+else
+(
+set -x
+wget -qO- --no-check-certificate https://bootstrap.pypa.io/get-pip.py | python
+)
+fi
+fi
 
-	# 如果使用脚本安装依然失败，提示手动安装
-	if ! command_exists pip; then
-		cat >&2 <<-EOF
-		未找到已安装的 pip 命令，请先手动安装 python-pip
-		本脚本自 v21 版开始使用 pip 来安装 Supervisior。
+# If the script installation still fails, prompt for manual installation.
+if ! command_exists pip; then
+cat >&2 <<-EOF
+The installed pip command was not found. Please install python-pip manually first.
+This script uses pip to install Supervisior since version v21.
 
-		1. 对于 Debian 系的 Linux 系统，可以尝试使用：
-		  sudo apt-get install -y python-pip 来进行安装
+1. For Debian Linux systems, you can try:
+sudo apt-get install -y python-pip to install
 
-		2. 对于 Redhat 系的 Linux 系统，可以尝试使用：
-		  sudo yum install -y python-pip 来进行安装
-		  * 如果提示未找到，可以先尝试安装：epel-release 扩展软件库
+2. For Redhat-based Linux systems, you can try using:
+sudo yum install -y python-pip to install
+* If the prompt is not found, you can try to install it first: epel-release extended software library
 
-		3. 如果以上方法都失败了，请使用以下命令来手动安装：
-		  wget -qO- --no-check-certificate https://bootstrap.pypa.io/get-pip.py | python
-		  * python 2.6 的用户请使用：
-		    wget -qO- --no-check-certificate https://bootstrap.pypa.io/2.6/get-pip.py | python
+3. If the above methods fail, please use the following command to install manually:
+wget -qO- --no-check-certificate https://bootstrap.pypa.io/get-pip.py | python
+*Users of python 2.6 please use:
+wget -qO- --no-check-certificate https://bootstrap.pypa.io/2.6/get-pip.py | python
 
-		4. pip 安装完毕之后，先运行一下更新命令：
-		  pip install --upgrade pip
+4. After pip is installed, run the update command first:
+pip install --upgrade pip
 
-		  再检查一下 pip 的版本：
-		  pip -V
+Check the pip version again:
+pip -V
 
-		一切无误后，请重新运行安装脚本。
-		EOF
-		exit 1
-	fi
+Once everything is correct, re-run the installation script.
+EOF
+exit 1
+fi
 
-	if ! ( pip --version >/dev/null 2>&1 ); then
-		cat >&2 <<-EOF
-		检测到当前环境的 pip 命令已损坏，
-		请检查你的 python 环境。
-		EOF
+if ! ( pip --version >/dev/null 2>&1 ); then
+cat >&2 <<-EOF
+The pip command of the current environment has been detected to be corrupted.
+Please check your python environment.
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 
-	if [ "$is_python_26" != "true" ]; then
-		# 已安装 pip 时先尝试更新一下，
-		# 如果是 python 2.6，就不要更新了，更新会导致 pip 损坏
-		# pip 只支持 python 2 >= 2.7.9
-		# https://pip.pypa.io/en/stable/installing/
-		(
-			set -x
-			pip install --upgrade pip || true
-		)
-	fi
+if [ "$is_python_26" != "true" ]; then
+# If pip is already installed, try updating it first.
+# If it is python 2.6, do not update. Updating will cause pip damage.
+# pip only supports python 2 >= 2.7.9
+# https://pip.pypa.io/en/stable/installing/
+(
+set -x
+pip install --upgrade pip || true
+)
+fi
 
-	if [ "$is_python_26" = "true" ]; then
-		(
-			set -x
-			pip install 'supervisor>=3.0.0,<4.0.0'
-		)
-	else
-		(
-			set -x
-			pip install --upgrade supervisor
-		)
-	fi
+if [ "$is_python_26" = "true" ]; then
+(
+set -x
+pip install 'supervisor>=3.0.0,<4.0.0'
+)
+else
+(
+set -x
+pip install --upgrade supervisor
+)
+fi
 
-	if [ "$?" != "0" ]; then
-		cat >&2 <<-EOF
-		错误: 安装 Supervisor 失败，
-		请尝试使用
-		  pip install supervisor
-		来手动安装。
-		Supervisor 从 4.0 开始已不支持 python 2.6 及以下版本
-		python 2.6 的用户请使用：
-		  pip install 'supervisor>=3.0.0,<4.0.0'
-		EOF
+if [ "$?" != "0" ]; then
+cat >&2 <<-EOF
+Error: Installation of Supervisor failed,
+Please try using
+pip install supervisor
+to install manually.
+Supervisor no longer supports python 2.6 and below starting from 4.0
+Users of python 2.6 please use:
+pip install 'supervisor>=3.0.0,<4.0.0'
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 
-	[ ! -d /etc/supervisor/conf.d ] && (
-		set -x
-		mkdir -p /etc/supervisor/conf.d
-	)
+[ ! -d /etc/supervisor/conf.d ] && (
+set -x
+mkdir -p /etc/supervisor/conf.d
+)
 
-	if [ ! -f '/usr/local/bin/supervisord' ]; then
-		(
-			set -x
-			ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
-		)
-	fi
+if [ ! -f '/usr/local/bin/supervisord' ]; then
+(
+set -x
+ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
+)
+fi
 
-	if [ ! -f '/usr/local/bin/supervisorctl' ]; then
-		(
-			set -x
-			ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
-		)
-	fi
+if [ ! -f '/usr/local/bin/supervisorctl' ]; then
+(
+set -x
+ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
+)
+fi
 
-	if [ ! -f '/usr/local/bin/pidproxy' ]; then
-		(
-			set -x
-			ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
-		)
-	fi
+if [ ! -f '/usr/local/bin/pidproxy' ]; then
+(
+set -x
+ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
+)
+fi
 
-	local cfg_file='/etc/supervisor/supervisord.conf'
+local cfg_file='/etc/supervisor/supervisord.conf'
 
-	local rvt="0"
+local rvt="0"
 
-	if [ ! -s "$cfg_file" ]; then
-		if ! command_exists echo_supervisord_conf; then
-			cat >&2 <<-'EOF'
-			未找到 echo_supervisord_conf, 无法自动创建 Supervisor 配置文件!
-			可能是当前安装的 supervisor 版本过低。
-			EOF
-			exit 1
-		fi
+if [ ! -s "$cfg_file" ]; then
+if ! command_exists echo_supervisord_conf; then
+cat >&2 <<-'EOF'
+echo_supervisord_conf not found, Supervisor configuration file cannot be automatically created!
+It may be that the currently installed supervisor version is too low.
+EOF
+exit 1
+fi
 
-		(
-			set -x
-			echo_supervisord_conf >"$cfg_file" 2>&1
-		)
-		rvt="$?"
-	fi
+(
+set -x
+echo_supervisord_conf >"$cfg_file" 2>&1
+)
+rvt="$?"
+fi
 
-	local cfg_content="$(cat "$cfg_file")"
+local cfg_content="$(cat "$cfg_file")"
 
-	# Error with supervisor config file
-	if ( echo "$cfg_content" | grep -q "Traceback (most recent call last)" ) ; then
-		rvt="1"
+# Error with supervisor config file
+if ( echo "$cfg_content" | grep -q "Traceback (most recent call last)" ) ; then
+rvt="1"
 
-		if ( echo "$cfg_content" | grep -q "DistributionNotFound: meld3" ); then
-			# https://github.com/Supervisor/meld3/issues/23
-			(
-				set -x
-				local temp="$(mktemp -d)"
-				local pwd="$(pwd)"
+if ( echo "$cfg_content" | grep -q "DistributionNotFound: meld3" ); then
+# https://github.com/Supervisor/meld3/issues/23
+(
+set -x
+local temp="$(mktemp -d)"
+local pwd="$(pwd)"
 
-				download_file 'https://pypi.python.org/packages/source/m/meld3/meld3-1.0.2.tar.gz' \
-					"$temp/meld3.tar.gz"
+download_file 'https://pypi.python.org/packages/source/m/meld3/meld3-1.0.2.tar.gz' \
+"$temp/meld3.tar.gz"
 
-				cd "$temp"
-				tar -zxf "$temp/meld3.tar.gz" --strip=1
-				python setup.py install
-				cd "$pwd"
-			)
+cd "$temp"
+tar -zxf "$temp/meld3.tar.gz" --strip=1
+python setup.py install
+cd "$pwd"
+)
 
-			if [ "$?" = "0" ] ; then
-				(
-					set -x
-					echo_supervisord_conf >"$cfg_file" 2>/dev/null
-				)
-				rvt="$?"
-			fi
-		fi
-	fi
+if [ "$?" = "0" ] ; then
+(
+set -x
+echo_supervisord_conf >"$cfg_file" 2>/dev/null
+)
+rvt="$?"
+fi
+fi
+fi
 
-	if [ "$rvt" != "0" ]; then
-		rm -f "$cfg_file"
-		echo "创建 Supervisor 配置文件失败!"
-		exit 1
-	fi
+if [ "$rvt" != "0" ]; then
+rm -f "$cfg_file"
+echo "Failed to create Supervisor configuration file!"
+exit 1
+fi
 
-	if ! grep -q '^files[[:space:]]*=[[:space:]]*/etc/supervisor/conf.d/\*\.conf$' "$cfg_file"; then
-		if grep -q '^\[include\]$' "$cfg_file"; then
-			sed -i '/^\[include\]$/a files = \/etc\/supervisor\/conf.d\/\*\.conf' "$cfg_file"
-		else
-			sed -i '$a [include]\nfiles = /etc/supervisor/conf.d/*.conf' "$cfg_file"
-		fi
-	fi
+if ! grep -q '^files[[:space:]]*=[[:space:]]*/etc/supervisor/conf.d/\*\.conf$' "$cfg_file"; then
+if grep -q '^\[include\]$' "$cfg_file"; then
+sed -i '/^\[include\]$/a files = \/etc\/supervisor\/conf.d\/\*\.conf' "$cfg_file"
+else
+sed -i '$a [include]\nfiles = /etc/supervisor/conf.d/*.conf' "$cfg_file"
+fi
+fi
 
-	download_startup_file
+download_startup_file
 }
 
 download_startup_file() {
-	local supervisor_startup_file=""
-	local supervisor_startup_file_url=""
+local supervisor_startup_file=""
+local supervisor_startup_file_url=""
 
-	if command_exists systemctl; then
-		supervisor_startup_file="/etc/systemd/system/supervisord.service"
-		supervisor_startup_file_url="$SUPERVISOR_SYSTEMD_FILE_URL"
+if command_exists systemctl; then
+supervisor_startup_file="/etc/systemd/system/supervisord.service"
+supervisor_startup_file_url="$SUPERVISOR_SYSTEMD_FILE_URL"
 
-		download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
-		(
-			set -x
-			# 删除旧版 service 文件
+download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
+(
+set -x
+# Delete old service files
 
-			local old_service_file="/lib/systemd/system/supervisord.service"
-			if [ -f "$old_service_file" ]; then
-				rm -f "$old_service_file"
-			fi
-			systemctl daemon-reload >/dev/null 2>&1
-		)
-	elif command_exists service; then
-		supervisor_startup_file='/etc/init.d/supervisord'
+local old_service_file="/lib/systemd/system/supervisord.service"
+if [ -f "$old_service_file" ]; then
+rm -f "$old_service_file"
+fi
+systemctl daemon-reload >/dev/null 2>&1
+)
+elif command_exists service; then
+supervisor_startup_file='/etc/init.d/supervisord'
 
-		if [ -z "$lsb_dist" ]; then
-			get_os_info
-		fi
+if [ -z "$lsb_dist" ]; then
+get_os_info
+fi
 
-		case "$lsb_dist" in
-			ubuntu|debian|raspbian)
-				supervisor_startup_file_url="$SUPERVISOR_SERVICE_FILE_DEBIAN_URL"
-				;;
-			fedora|centos|redhat|oraclelinux|photon)
-				supervisor_startup_file_url="$SUPERVISOR_SERVICE_FILE_REDHAT_URL"
-				;;
-			*)
-				echo "没有适合当前系统的服务启动脚本文件。"
-				exit 1
-				;;
-		esac
+case "$lsb_dist" in
+ubuntu|debian|raspbian)
+supervisor_startup_file_url="$SUPERVISOR_SERVICE_FILE_DEBIAN_URL"
+;;
+fedora|centos|redhat|oraclelinux|photon)
+supervisor_startup_file_url="$SUPERVISOR_SERVICE_FILE_REDHAT_URL"
+;;
+*)
+echo "There is no service startup script file suitable for the current system."
+exit 1
+;;
+esac
 
-		download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
-		(
-			set -x
-			chmod a+x "$supervisor_startup_file"
-		)
-	else
-		cat >&2 <<-'EOF'
-		当前服务器未安装 systemctl 或者 service 命令，无法配置服务。
-		请先手动安装 systemd 或者 service 之后再运行脚本。
-		EOF
+download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
+(
+set -x
+chmod a+x "$supervisor_startup_file"
+)
+else
+cat >&2 <<-'EOF'
+The systemctl or service command is not installed on the current server, and the service cannot be configured.
+Please install systemd or service manually before running the script.
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 }
 
 start_supervisor() {
-	( set -x; sleep 3 )
-	if command_exists systemctl; then
-		if systemctl status supervisord.service >/dev/null 2>&1; then
-			systemctl restart supervisord.service
-		else
-			systemctl start supervisord.service
-		fi
-	elif command_exists service; then
-		if service supervisord status >/dev/null 2>&1; then
-			service supervisord restart
-		else
-			service supervisord start
-		fi
-	fi
+(set -x; sleep 3)
+if command_exists systemctl; then
+if systemctl status supervisord.service >/dev/null 2>&1; then
+systemctl restart supervisord.service
+else
+systemctl start supervisord.service
+fi
+elif command_exists service; then
+if service supervisord status >/dev/null 2>&1; then
+service supervisord restart
+else
+service supervisord start
+fi
+fi
 
-	if [ "$?" != "0" ]; then
-		cat >&2 <<-'EOF'
-		启动 Supervisor 失败, Kcptun 无法正常工作!
-		请反馈给脚本作者。
-		EOF
-		exit 1
-	fi
+if [ "$?" != "0" ]; then
+cat >&2 <<-'EOF'
+Failed to start Supervisor, Kcptun cannot work properly!
+Please give feedback to the script author.
+EOF
+exit 1
+fi
 }
 
 enable_supervisor() {
-	if command_exists systemctl; then
-		(
-			set -x
-			systemctl enable "supervisord.service"
-		)
-	elif command_exists service; then
-		if [ -z "$lsb_dist" ]; then
-			get_os_info
-		fi
+if command_exists systemctl; then
+(
+set -x
+systemctl enable "supervisord.service"
+)
+elif command_exists service; then
+if [ -z "$lsb_dist" ]; then
+get_os_info
+fi
 
-		case "$lsb_dist" in
-			ubuntu|debian|raspbian)
-				(
-					set -x
-					update-rc.d -f supervisord defaults
-				)
-				;;
-			fedora|centos|redhat|oraclelinux|photon)
-				(
-					set -x
-					chkconfig --add supervisord
-					chkconfig supervisord on
-				)
-				;;
-			esac
-	fi
+case "$lsb_dist" in
+ubuntu|debian|raspbian)
+(
+set -x
+update-rc.d -f supervisord defaults
+)
+;;
+fedora|centos|redhat|oraclelinux|photon)
+(
+set -x
+chkconfig --add supervisord
+chkconfig supervisord on
+)
+;;
+esac
+fi
 }
 
 set_kcptun_config() {
-	is_port() {
-		local port="$1"
-		is_number "$port" && \
-			[ $port -ge 1 ] && [ $port -le 65535 ]
-	}
+is_port() {
+local port="$1"
+is_number "$port" && \
+[ $port -ge 1 ] && [ $port -le 65535 ]
+}
 
-	port_using() {
-		local port="$1"
+port_using() {
+local port="$1"
 
-		if command_exists netstat; then
-			( netstat -ntul | grep -qE "[0-9:*]:${port}\s" )
-		elif command_exists ss; then
-			( ss -ntul | grep -qE "[0-9:*]:${port}\s" )
-		else
-			return 0
-		fi
+if command_exists netstat; then
+( netstat -ntul | grep -qE "[0-9:*]:${port}\s" )
+elif command_exists ss; then
+( ss -ntul | grep -qE "[0-9:*]:${port}\s" )
+else
+return 0
+fi
 
-		return $?
-	}
+return $?
+}
 
-	local input=""
-	local yn=""
+local input=""
+local yn=""
 
-	# 设置服务运行端口
-	[ -z "$listen_port" ] && listen_port="$D_LISTEN_PORT"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请输入 Kcptun 服务端运行端口 [1~65535]
-		这个端口就是 Kcptun 客户端连接的端口
-		EOF
-		read -p "(默认: ${listen_port}): " input
-		if [ -n "$input" ]; then
-			if is_port "$input"; then
-				listen_port="$input"
-			else
-				echo "输入有误, 请输入 1~65535 之间的数字!"
-				continue
-			fi
-		fi
+#Set the service running port
+[ -z "$listen_port" ] && listen_port="$D_LISTEN_PORT"
+while true
+do
+cat >&1 <<-'EOF'
+Please enter the Kcptun server running port [1~65535]
+This port is the port that the Kcptun client connects to.
+EOF
+read -p "(default: ${listen_port}): " input
+if [ -n "$input" ]; then
+if is_port "$input"; then
+listen_port="$input"
+else
+echo "Incorrect input, please enter a number between 1~65535!"
+continue
+fi
+fi
 
-		if port_using "$listen_port" && \
-			[ "$listen_port" != "$current_listen_port" ]; then
-			echo "端口已被占用, 请重新输入!"
-			continue
-		fi
-		break
-	done
+if port_using "$listen_port" && \
+[ "$listen_port" != "$current_listen_port" ]; then
+echo "The port is occupied, please re-enter!"
+continue
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	端口 = ${listen_port}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+port = ${listen_port}
+--------------------------
+EOF
 
-	[ -z "$target_addr" ] && target_addr="$D_TARGET_ADDR"
-	cat >&1 <<-'EOF'
-	请输入需要加速的地址
-	可以输入主机名称、IPv4 地址或者 IPv6 地址
-	EOF
-	read -p "(默认: ${target_addr}): " input
-	if [ -n "$input" ]; then
-		target_addr="$input"
-	fi
+[ -z "$target_addr" ] && target_addr="$D_TARGET_ADDR"
+cat >&1 <<-'EOF'
+Please enter the address that needs to be accelerated
+You can enter a host name, IPv4 address, or IPv6 address
+EOF
+read -p "(default: ${target_addr}): " input
+if [ -n "$input" ]; then
+target_addr="$input"
+fi
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	加速地址 = ${target_addr}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+Acceleration address = ${target_addr}
+--------------------------
+EOF
 
-	[ -z "$target_port" ] && target_port="$D_TARGET_PORT"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请输入需要加速的端口 [1~65535]
-		EOF
-		read -p "(默认: ${target_port}): " input
-		if [ -n "$input" ]; then
-			if is_port "$input"; then
-				if [ "$input" = "$listen_port" ]; then
-					echo "加速端口不能和 Kcptun 端口一致!"
-					continue
-				fi
+[ -z "$target_port" ] && target_port="$D_TARGET_PORT"
+while true
+do
+cat >&1 <<-'EOF'
+Please enter the port that needs to be accelerated [1~65535]
+EOF
+read -p "(default: ${target_port}): " input
+if [ -n "$input" ]; then
+if is_port "$input"; then
+if [ "$input" = "$listen_port" ]; then
+echo "The acceleration port cannot be the same as the Kcptun port!"
+continue
+fi
 
-				target_port="$input"
-			else
-				echo "输入有误, 请输入 1~65535 之间的数字!"
-				continue
-			fi
-		fi
+target_port="$input"
+else
+echo "Incorrect input, please enter a number between 1~65535!"
+continue
+fi
+fi
 
-		if [ "$target_addr" = "127.0.0.1" ] && ! port_using "$target_port"; then
-			read -p "当前没有软件使用此端口, 确定加速此端口? [y/n]: " yn
-			if [ -n "$yn" ]; then
-				case "$(first_character "$yn")" in
-					y|Y)
-						;;
-					*)
-						continue
-						;;
-				esac
-			fi
-		fi
+if [ "$target_addr" = "127.0.0.1" ] && ! port_using "$target_port"; then
+read -p "No software currently uses this port. Are you sure you want to accelerate this port? [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+;;
+*)
+continue
+;;
+esac
+fi
+fi
 
-		break
-	done
+break
+done
 
-	input=""
-	yn=""
-	cat >&1 <<-EOF
-	---------------------------
-	加速端口 = ${target_port}
-	---------------------------
-	EOF
+input=""
+yn=""
+cat >&1 <<-EOF
+--------------------------
+Acceleration port = ${target_port}
+--------------------------
+EOF
 
-	[ -z "$key" ] && key="$D_KEY"
-	cat >&1 <<-'EOF'
-	请设置 Kcptun 密码(key)
-	该参数必须两端一致
-	EOF
-	read -p "(默认密码: ${key}): " input
-	[ -n "$input" ] && key="$input"
+[ -z "$key" ] && key="$D_KEY"
+cat >&1 <<-'EOF'
+Please set Kcptun password (key)
+This parameter must be consistent on both sides
+EOF
+read -p "(default password: ${key}): " input
+[ -n "$input" ] && key="$input"
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	密码 = ${key}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+Password = ${key}
+--------------------------
+EOF
 
-	[ -z "$crypt" ] && crypt="$D_CRYPT"
-	local crypt_list="aes aes-128 aes-192 salsa20 blowfish twofish cast5 3des tea xtea xor none"
-	local i=0
-	cat >&1 <<-'EOF'
-	请选择加密方式(crypt)
-	强加密对 CPU 要求较高，
-	如果是在路由器上配置客户端，
-	请尽量选择弱加密或者不加密。
-	该参数必须两端一致
-	EOF
-	while true
-	do
+[ -z "$crypt" ] && crypt="$D_CRYPT"
+local crypt_list="aes aes-128 aes-192 salsa20 blowfish twofish cast5 3des tea xtea xor none"
+local i=0
+cat >&1 <<-'EOF'
+Please select encryption method (crypt)
+Strong encryption has higher CPU requirements.
+If you configure the client on the router,
+Please try to choose weak encryption or no encryption.
+This parameter must be consistent on both sides
+EOF
+while true
+do
 
-		for c in $crypt_list; do
-			i=$(expr $i + 1)
-			echo "(${i}) ${c}"
-		done
+for c in $crypt_list; do
+i=$(expr $i + 1)
+echo "(${i}) ${c}"
+done
 
-		read -p "(默认: ${crypt}) 请选择 [1~$i]: " input
-		if [ -n "$input" ]; then
-			if is_number "$input" && [ $input -ge 1 ] && [ $input -le $i ]; then
-				crypt=$(echo "$crypt_list" | cut -d' ' -f ${input})
-			else
-				echo "请输入有效数字 1~$i!"
-				i=0
-				continue
-			fi
-		fi
-		break
-	done
+read -p "(Default: ${crypt}) Please select [1~$i]: " input
+if [ -n "$input" ]; then
+if is_number "$input" && [ $input -ge 1 ] && [ $input -le $i ]; then
+crypt=$(echo "$crypt_list" | cut -d' ' -f ${input})
+else
+echo "Please enter valid digits 1~$i!"
+i=0
+continue
+fi
+fi
+break
+done
 
-	input=""
-	i=0
-	cat >&1 <<-EOF
-	-----------------------------
-	加密方式 = ${crypt}
-	-----------------------------
-	EOF
+input=""
+i=0
+cat >&1 <<-EOF
+--------------------------
+Encryption method = ${crypt}
+--------------------------
+EOF
 
-	[ -z "$mode" ] && mode="$D_MODE"
-	local mode_list="normal fast fast2 fast3 manual"
-	i=0
-	cat >&1 <<-'EOF'
-	请选择加速模式(mode)
-	加速模式和发送窗口大小共同决定了流量的损耗大小
-	如果加速模式选择“手动(manual)”，
-	将进入手动档隐藏参数的设置。
-	EOF
-	while true
-	do
+[ -z "$mode" ] && mode="$D_MODE"
+local mode_list="normal fast fast2 fast3 manual"
+i=0
+cat >&1 <<-'EOF'
+Please select acceleration mode (mode)
+The acceleration mode and the sending window size jointly determine the loss of traffic
+If "manual" is selected for acceleration mode,
+You will enter the settings of manual transmission hidden parameters.
+EOF
+while true
+do
 
-		for m in $mode_list; do
-			i=$(expr $i + 1)
-			echo "(${i}) ${m}"
-		done
+for m in $mode_list; do
+i=$(expr $i + 1)
+echo "(${i}) ${m}"
+done
 
-		read -p "(默认: ${mode}) 请选择 [1~$i]: " input
-		if [ -n "$input" ]; then
-			if is_number "$input" && [ $input -ge 1 ] && [ $input -le $i ]; then
-				mode=$(echo "$mode_list" | cut -d ' ' -f ${input})
-			else
-				echo "请输入有效数字 1~$i!"
-				i=0
-				continue
-			fi
-		fi
-		break
-	done
+read -p "(Default: ${mode}) Please select [1~$i]: " input
+if [ -n "$input" ]; then
+if is_number "$input" && [ $input -ge 1 ] && [ $input -le $i ]; then
+mode=$(echo "$mode_list" | cut -d ' ' -f ${input})
+else
+echo "Please enter valid digits 1~$i!"
+i=0
+continue
+fi
+fi
+break
+done
 
-	input=""
-	i=0
-	cat >&1 <<-EOF
-	---------------------------
-	加速模式 = ${mode}
-	---------------------------
-	EOF
+input=""
+i=0
+cat >&1 <<-EOF
+--------------------------
+acceleration mode = ${mode}
+--------------------------
+EOF
 
-	if [ "$mode" = "manual" ]; then
-		set_manual_parameters
-	else
-		nodelay=""
-		interval=""
-		resend=""
-		nc=""
-	fi
+if [ "$mode" = "manual" ]; then
+set_manual_parameters
+else
+nodelay=""
+interval=""
+resend=""
+nc=""
+fi
 
-	[ -z "$mtu" ] && mtu="$D_MTU"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置 UDP 数据包的 MTU (最大传输单元)值
-		EOF
-		read -p "(默认: ${mtu}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$mtu" ] && mtu="$D_MTU"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the MTU (Maximum Transmission Unit) value of UDP packets
+EOF
+read -p "(default: ${mtu}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			mtu=$input
-		fi
-		break
-	done
+mtu=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	MTU = ${mtu}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+MTU = ${mtu}
+--------------------------
+EOF
 
-	[ -z "$sndwnd" ] && sndwnd="$D_SNDWND"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置发送窗口大小(sndwnd)
-		发送窗口过大会浪费过多流量
-		EOF
-		read -p "(数据包数量, 默认: ${sndwnd}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$sndwnd" ] && sndwnd="$D_SNDWND"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the sending window size (sndwnd)
+If the sending window is too large, too much traffic will be wasted
+EOF
+read -p "(Number of packets, default: ${sndwnd}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			sndwnd=$input
-		fi
-		break
-	done
+sndwnd=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	sndwnd = ${sndwnd}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+sndwnd = ${sndwnd}
+--------------------------
+EOF
 
-	[ -z "$rcvwnd" ] && rcvwnd="$D_RCVWND"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置接收窗口大小(rcvwnd)
-		EOF
-		read -p "(数据包数量, 默认: ${rcvwnd}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$rcvwnd" ] && rcvwnd="$D_RCVWND"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the receive window size (rcvwnd)
+EOF
+read -p "(Number of packets, default: ${rcvwnd}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			rcvwnd=$input
-		fi
-		break
-	done
+rcvwnd=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	rcvwnd = ${rcvwnd}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+rcvwnd = ${rcvwnd}
+--------------------------
+EOF
 
-	[ -z "$datashard" ] && datashard="$D_DATASHARD"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置前向纠错 datashard
-		该参数必须两端一致
-		EOF
-		read -p "(默认: ${datashard}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -lt 0 ]; then
-				echo "输入有误, 请输入大于等于0的数字!"
-				continue
-			fi
+[ -z "$datashard" ] && datashard="$D_DATASHARD"
+while true
+do
+cat >&1 <<-'EOF'
+Please set up forward error correction datashard
+This parameter must be consistent on both sides
+EOF
+read -p "(default: ${datashard}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -lt 0 ]; then
+echo "Incorrect input, please enter a number greater than or equal to 0!"
+continue
+fi
 
-			datashard=$input
-		fi
-		break
-	done
+datashard=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	datashard = ${datashard}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+datashard = ${datashard}
+--------------------------
+EOF
 
-	[ -z "$parityshard" ] && parityshard="$D_PARITYSHARD"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置前向纠错 parityshard
-		该参数必须两端一致
-		EOF
-		read -p "(默认: ${parityshard}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -lt 0 ]; then
-				echo "输入有误, 请输入大于等于0的数字!"
-				continue
-			fi
+[ -z "$parityshard" ] && parityshard="$D_PARITYSHARD"
+while true
+do
+cat >&1 <<-'EOF'
+Please set forward error correction parityshard
+This parameter must be consistent on both sides
+EOF
+read -p "(default: ${parityshard}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -lt 0 ]; then
+echo "Incorrect input, please enter a number greater than or equal to 0!"
+continue
+fi
 
-			parityshard=$input
-		fi
-		break
-	done
+parityshard=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	parityshard = ${parityshard}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+parityshard = ${parityshard}
+--------------------------
+EOF
 
-	[ -z "$dscp" ] && dscp="$D_DSCP"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置差分服务代码点(DSCP)
-		EOF
-		read -p "(默认: ${dscp}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -lt 0 ]; then
-				echo "输入有误, 请输入大于等于0的数字!"
-				continue
-			fi
+[ -z "$dscp" ] && dscp="$D_DSCP"
+while true
+do
+cat >&1 <<-'EOF'
+Please set Differentiated Services Code Point (DSCP)
+EOF
+read -p "(default: ${dscp}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -lt 0 ]; then
+echo "Incorrect input, please enter a number greater than or equal to 0!"
+continue
+fi
 
-			dscp=$input
-		fi
-		break
-	done
+dscp=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	DSCP = ${dscp}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+DSCP = ${dscp}
+--------------------------
+EOF
 
-	[ -z "$nocomp" ] && nocomp="$D_NOCOMP"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否关闭数据压缩?
-		EOF
-		read -p "(默认: ${nocomp}) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "$(first_character "$yn")" in
-				y|Y)
-					nocomp='true'
-					;;
-				n|N)
-					nocomp='false'
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$nocomp" ] && nocomp="$D_NOCOMP"
+while true
+do
+cat >&1 <<-'EOF'
+Do you want to turn off data compression?
+EOF
+read -p "(default: ${nocomp}) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+nocomp='true'
+;;
+n|N)
+nocomp='false'
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	yn=""
-	cat >&1 <<-EOF
-	---------------------------
-	nocomp = ${nocomp}
-	---------------------------
-	EOF
+yn=""
+cat >&1 <<-EOF
+--------------------------
+nocomp = ${nocomp}
+--------------------------
+EOF
 
-	[ -z "$quiet" ] && quiet="$D_QUIET"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否屏蔽 open/close 日志输出?
-		EOF
-		read -p "(默认: ${quiet}) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "$(first_character "$yn")" in
-				y|Y)
-					quiet='true'
-					;;
-				n|N)
-					quiet='false'
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$quiet" ] && quiet="$D_QUIET"
+while true
+do
+cat >&1 <<-'EOF'
+Whether to block open/close log output?
+EOF
+read -p "(default: ${quiet}) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+quiet='true'
+;;
+n|N)
+quiet='false'
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	yn=""
-	cat >&1 <<-EOF
-	---------------------------
-	quiet = ${quiet}
-	---------------------------
-	EOF
+yn=""
+cat >&1 <<-EOF
+--------------------------
+quiet = ${quiet}
+--------------------------
+EOF
 
-	[ -z "$tcp" ] && tcp="$D_TCP"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否使用 TCP 传输
-		EOF
-		read -p "(默认: ${tcp}) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "$(first_character "$yn")" in
-				y|Y)
-					tcp='true'
-					;;
-				n|N)
-					tcp='false'
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$tcp" ] && tcp="$D_TCP"
+while true
+do
+cat >&1 <<-'EOF'
+Whether to use TCP transmission
+EOF
+read -p "(default: ${tcp}) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+tcp='true'
+;;
+n|N)
+tcp='false'
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	if [ "$tcp" = "true" ]; then
-		run_user="root"
-	fi
+if [ "$tcp" = "true" ]; then
+run_user="root"
+fi
 
-	yn=""
-	cat >&1 <<-EOF
-	---------------------------
-	tcp = ${tcp}
-	---------------------------
-	EOF
+yn=""
+cat >&1 <<-EOF
+--------------------------
+tcp = ${tcp}
+--------------------------
+EOF
 
-	unset_snmp() {
-		snmplog=""
-		snmpperiod=""
-		cat >&1 <<-EOF
-		---------------------------
-		不记录 SNMP 日志
-		---------------------------
-		EOF
-	}
+unset_snmp() {
+snmplog=""
+snmpperiod=""
+cat >&1 <<-EOF
+--------------------------
+No SNMP logging
+--------------------------
+EOF
+}
 
-	cat >&1 <<-EOF
-	是否记录 SNMP 日志?
-	EOF
-	read -p "(默认: 否) [y/n]: " yn
-	if [ -n "$yn" ]; then
-		case "$(first_character "$yn")" in
-			y|Y)
-				set_snmp
-				;;
-			n|N|*)
-				unset_snmp
-				;;
-		esac
-		yn=""
-	else
-		unset_snmp
-	fi
+cat >&1 <<-EOF
+Do you want to record SNMP logs?
+EOF
+read -p "(default: no) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+set_snmp
+;;
+n|N|*)
+unset_snmp
+;;
+esac
+yn=""
+else
+unset_snmp
+fi
 
-	[ -z "$pprof" ] && pprof="$D_PPROF"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否开启 pprof 性能监控?
-		地址: http://IP:6060/debug/pprof/
-		EOF
-		read -p "(默认: ${pprof}) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "$(first_character "$yn")" in
-				y|Y)
-					pprof='true'
-					;;
-				n|N)
-					pprof='false'
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$pprof" ] && pprof="$D_PPROF"
+while true
+do
+cat >&1 <<-'EOF'
+Do you want to enable pprof performance monitoring?
+Address: http://IP:6060/debug/pprof/
+EOF
+read -p "(default: ${pprof}) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+pprof='true'
+;;
+n|N)
+pprof='false'
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	yn=""
-	cat >&1 <<-EOF
-	---------------------------
-	pprof = ${pprof}
-	---------------------------
-	EOF
+yn=""
+cat >&1 <<-EOF
+--------------------------
+pprof = ${pprof}
+--------------------------
+EOF
 
-	unset_hidden_parameters() {
-		acknodelay=""
-		sockbuf=""
-		smuxbuf=""
-		keepalive=""
-		cat >&1 <<-EOF
-		---------------------------
-		不配置隐藏参数
-		---------------------------
-		EOF
-	}
+unset_hidden_parameters() {
+acknodelay=""
+sockbuf=""
+smuxbuf=""
+keepalive=""
+cat >&1 <<-EOF
+--------------------------
+Do not configure hidden parameters
+--------------------------
+EOF
+}
 
-	cat >&1 <<-'EOF'
-	基础参数设置完成，是否设置额外的隐藏参数?
-	通常情况下保持默认即可，不用额外设置
-	EOF
-	read -p "(默认: 否) [y/n]: " yn
-	if [ -n "$yn" ]; then
-		case "$(first_character "$yn")" in
-			y|Y)
-				set_hidden_parameters
-				;;
-			n|N|*)
-				unset_hidden_parameters
-				;;
-		esac
-	else
-		unset_hidden_parameters
-	fi
+cat >&1 <<-'EOF'
+The basic parameter settings are completed. Do you want to set additional hidden parameters?
+Normally, just keep the default and no additional settings are needed.
+EOF
+read -p "(default: no) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+set_hidden_parameters
+;;
+n|N|*)
+unset_hidden_parameters
+;;
+esac
+else
+unset_hidden_parameters
+fi
 
-	if [ $listen_port -le 1024 ]; then
-		run_user="root"
-	fi
+if [ $listen_port -le 1024 ]; then
+run_user="root"
+fi
 
-	echo "配置完成。"
-	any_key_to_continue
+echo "Configuration completed."
+any_key_to_continue
 }
 
 set_snmp() {
-	snmplog="$(get_current_file 'snmp')"
+snmplog="$(get_current_file 'snmp')"
 
-	local input=""
-	[ -z "$snmpperiod" ] && snmpperiod="$D_SNMPPERIOD"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置 SNMP 记录间隔时间 snmpperiod
-		EOF
-		read -p "(默认: ${snmpperiod}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -lt 0 ]; then
-				echo "输入有误, 请输入大于等于0的数字!"
-				continue
-			fi
+local input=""
+[ -z "$snmpperiod" ] && snmpperiod="$D_SNMPPERIOD"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the SNMP recording interval snmpperiod
+EOF
+read -p "(default: ${snmpperiod}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -lt 0 ]; then
+echo "Incorrect input, please enter a number greater than or equal to 0!"
+continue
+fi
 
-			snmpperiod=$input
-		fi
-		break
-	done
+snmpperiod=$input
+fi
+break
+done
 
-	cat >&1 <<-EOF
-	---------------------------
-	snmplog = ${snmplog}
-	snmpperiod = ${snmpperiod}
-	---------------------------
-	EOF
+cat >&1 <<-EOF
+--------------------------
+snmplog = ${snmplog}
+snmpperiod = ${snmpperiod}
+--------------------------
+EOF
 }
 
 set_manual_parameters() {
-	echo "开始配置手动参数..."
-	local input=""
-	local yn=""
+echo "Start configuring manual parameters..."
+local input=""
+local yn=""
 
-	[ -z "$nodelay" ] && nodelay="$D_NODELAY"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否启用 nodelay 模式?
-		(0) 不启用
-		(1) 启用
-		EOF
-		read -p "(默认: ${nodelay}) [0/1]: " input
-		if [ -n "$input" ]; then
-			case "$(first_character "$input")" in
-				1)
-					nodelay=1
-					;;
-				0|*)
-					nodelay=0
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$nodelay" ] && nodelay="$D_NODELAY"
+while true
+do
+cat >&1 <<-'EOF'
+Enable nodelay mode?
+(0) Not enabled
+(1) Enable
+EOF
+read -p "(Default: ${nodelay}) [0/1]: " input
+if [ -n "$input" ]; then
+case "$(first_character "$input")" in
+1)
+nodelay=1
+;;
+0|*)
+nodelay=0
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	nodelay = ${nodelay}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+nodelay = ${nodelay}
+--------------------------
+EOF
 
-	[ -z "$interval" ] && interval="$D_INTERVAL"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置协议内部工作的 interval
-		EOF
-		read -p "(单位: ms, 默认: ${interval}): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$interval" ] && interval="$D_INTERVAL"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the interval for the inner workings of the protocol
+EOF
+read -p "(unit: ms, default: ${interval}): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			interval=$input
-		fi
-		break
-	done
+interval=$input
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	interval = ${interval}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+interval = ${interval}
+--------------------------
+EOF
 
-	[ -z "$resend" ] && resend="$D_RESEND"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否启用快速重传模式(resend)?
-		(0) 不启用
-		(1) 启用
-		(2) 2次ACK跨越将会直接重传
-		EOF
-		read -p "(默认: ${resend}) 请选择 [0~2]: " input
-		if [ -n "$input" ]; then
-			case "$(first_character "$input")" in
-				0)
-					resend=0
-					;;
-				1)
-					resend=1
-					;;
-				2)
-					resend=2
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$resend" ] && resend="$D_RESEND"
+while true
+do
+cat >&1 <<-'EOF'
+Enable fast retransmit mode (resend)?
+(0) Not enabled
+(1) Enable
+(2) 2 ACK crosses will be retransmitted directly
+EOF
+read -p "(Default: ${resend}) Please select [0~2]: " input
+if [ -n "$input" ]; then
+case "$(first_character "$input")" in
+0)
+resend=0
+;;
+1)
+resend=1
+;;
+2)
+resend=2
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	resend = ${resend}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+resend = ${resend}
+--------------------------
+EOF
 
-	[ -z "$nc" ] && nc="$D_NC"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否关闭流控(nc)?
-		(0) 关闭
-		(1) 开启
-		EOF
-		read -p "(默认: ${nc}) [0/1]: " input
-		if [ -n "$input" ]; then
-			case "$(first_character "$input")" in
-				0)
-					nc=0
-					;;
-				1)
-					nc=1
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
-	cat >&1 <<-EOF
-	---------------------------
-	nc = ${nc}
-	---------------------------
-	EOF
+[ -z "$nc" ] && nc="$D_NC"
+while true
+do
+cat >&1 <<-'EOF'
+Do you want to turn off flow control (nc)?
+(0) Close
+(1) Turn on
+EOF
+read -p "(Default: ${nc}) [0/1]: " input
+if [ -n "$input" ]; then
+case "$(first_character "$input")" in
+0)
+nc=0
+;;
+1)
+nc=1
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
+cat >&1 <<-EOF
+--------------------------
+nc = ${nc}
+--------------------------
+EOF
 }
 
 set_hidden_parameters() {
-	echo "开始设置隐藏参数..."
-	local input=""
-	local yn=""
+echo "Start setting hidden parameters..."
+local input=""
+local yn=""
 
-	[ -z "$acknodelay" ] && acknodelay="$D_ACKNODELAY"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		是否启用 acknodelay 模式?
-		EOF
-		read -p "(默认: ${acknodelay}) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "$(first_character "$yn")" in
-				y|Y)
-					acknodelay="true"
-					;;
-				n|N)
-					acknodelay="false"
-					;;
-				*)
-					echo "输入有误，请重新输入!"
-					continue
-					;;
-			esac
-		fi
-		break
-	done
+[ -z "$acknodelay" ] && acknodelay="$D_ACKNODELAY"
+while true
+do
+cat >&1 <<-'EOF'
+Enable acknodelay mode?
+EOF
+read -p "(default: ${acknodelay}) [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+acknodelay="true"
+;;
+n|N)
+acknodelay="false"
+;;
+*)
+echo "Incorrect input, please re-enter!"
+continue
+;;
+esac
+fi
+break
+done
 
-	yn=""
-	cat >&1 <<-EOF
-	---------------------------
-	acknodelay = ${acknodelay}
-	---------------------------
-	EOF
+yn=""
+cat >&1 <<-EOF
+--------------------------
+acknodelay = ${acknodelay}
+--------------------------
+EOF
 
-	[ -z "$sockbuf" ] && sockbuf="$D_SOCKBUF"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置 UDP 收发缓冲区大小(sockbuf)
-		EOF
-		read -p "(单位: MB, 默认: $(expr ${sockbuf} / 1024 / 1024)): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$sockbuf" ] && sockbuf="$D_SOCKBUF"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the UDP send and receive buffer size (sockbuf)
+EOF
+read -p "(Unit: MB, Default: $(expr ${sockbuf} / 1024 / 1024)): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			sockbuf=$(expr $input \* 1024 \* 1024)
-		fi
-		break
-	done
+sockbuf=$(expr $input \* 1024 \* 1024)
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	sockbuf = ${sockbuf}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+sockbuf = ${sockbuf}
+--------------------------
+EOF
 
-	[ -z "$smuxbuf" ] && smuxbuf="$D_SMUXBUF"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置 de-mux 缓冲区大小(smuxbuf)
-		EOF
-		read -p "(单位: MB, 默认: $(expr ${smuxbuf} / 1024 / 1024)): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$smuxbuf" ] && smuxbuf="$D_SMUXBUF"
+while true
+do
+cat >&1 <<-'EOF'
+Please set de-mux buffer size (smuxbuf)
+EOF
+read -p "(Unit: MB, Default: $(expr ${smuxbuf} / 1024 / 1024)): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			smuxbuf=$(expr $input \* 1024 \* 1024)
-		fi
-		break
-	done
+smuxbuf=$(expr $input \* 1024 \* 1024)
+fi
+break
+done
 
-	input=""
-	cat >&1 <<-EOF
-	---------------------------
-	smuxbuf = ${smuxbuf}
-	---------------------------
-	EOF
+input=""
+cat >&1 <<-EOF
+--------------------------
+smuxbuf = ${smuxbuf}
+--------------------------
+EOF
 
-	[ -z "$keepalive" ] && keepalive="$D_KEEPALIVE"
-	while true
-	do
-		cat >&1 <<-'EOF'
-		请设置 Keepalive 的间隔时间
-		EOF
-		read -p "(单位: s, 默认值: ${keepalive}, 前值: 5): " input
-		if [ -n "$input" ]; then
-			if ! is_number "$input" || [ $input -le 0 ]; then
-				echo "输入有误, 请输入大于0的数字!"
-				continue
-			fi
+[ -z "$keepalive" ] && keepalive="$D_KEEPALIVE"
+while true
+do
+cat >&1 <<-'EOF'
+Please set the Keepalive interval
+EOF
+read -p "(unit: s, default value: ${keepalive}, previous value: 5): " input
+if [ -n "$input" ]; then
+if ! is_number "$input" || [ $input -le 0 ]; then
+echo "Incorrect input, please enter a number greater than 0!"
+continue
+fi
 
-			keepalive=$input
-		fi
-		break
-	done
+keepalive=$input
+fi
+break
+done
 
-	cat >&1 <<-EOF
-	---------------------------
-	keepalive = ${keepalive}
-	---------------------------
-	EOF
+cat >&1 <<-EOF
+--------------------------
+keepalive = ${keepalive}
+--------------------------
+EOF
 }
 
-# 生成 Kcptun 服务端配置文件
+# Generate Kcptun server configuration file
 gen_kcptun_config() {
-	mk_file_dir() {
-		local dir=""
-		dir="$(dirname "$1")"
-		local mod=$2
+mk_file_dir() {
+local dir=""
+dir="$(dirname "$1")"
+local mod=$2
 
-		if [ ! -d "$dir" ]; then
-			(
-				set -x
-				mkdir -p "$dir"
-			)
-		fi
+if [ ! -d "$dir" ]; then
+(
+set -x
+mkdir -p "$dir"
+)
+fi
 
-		if [ -n "$mod" ]; then
-			chmod $mod "$dir"
-		fi
-	}
-
-	local config_file=""
-	config_file="$(get_current_file 'config')"
-	local supervisor_config_file=""
-	supervisor_config_file="$(get_current_file 'supervisor')"
-
-	mk_file_dir "$config_file"
-	mk_file_dir "$supervisor_config_file"
-
-	if [ -n "$snmplog" ]; then
-		mk_file_dir "$snmplog" '777'
-	fi
-
-	if ( echo "$listen_addr" | grep -q ":" ); then
-		listen_addr="[${listen_addr}]"
-	fi
-
-	if ( echo "$target_addr" | grep -q ":" ); then
-		target_addr="[${target_addr}]"
-	fi
-
-	cat > "$config_file"<<-EOF
-	{
-	  "listen": "${listen_addr}:${listen_port}",
-	  "target": "${target_addr}:${target_port}",
-	  "key": "${key}",
-	  "crypt": "${crypt}",
-	  "mode": "${mode}",
-	  "mtu": ${mtu},
-	  "sndwnd": ${sndwnd},
-	  "rcvwnd": ${rcvwnd},
-	  "datashard": ${datashard},
-	  "parityshard": ${parityshard},
-	  "dscp": ${dscp},
-	  "nocomp": ${nocomp},
-	  "quiet": ${quiet},
-	  "tcp": ${tcp}
-	}
-	EOF
-
-	write_configs_to_file() {
-		install_jq
-		local k; local v
-
-		local json=""
-		json="$(cat "$config_file")"
-		for k in "$@"; do
-			v="$(eval echo "\$$k")"
-
-			if [ -n "$v" ]; then
-				if is_number "$v" || [ "$v" = "false" ] || [ "$v" = "true" ]; then
-					json="$(echo "$json" | $JQ_BIN ".$k=$v")"
-				else
-					json="$(echo "$json" | $JQ_BIN ".$k=\"$v\"")"
-				fi
-			fi
-		done
-
-		if [ -n "$json" ] && [ "$json" != "$(cat "$config_file")" ]; then
-			echo "$json" >"$config_file"
-		fi
-	}
-
-	write_configs_to_file "snmplog" "snmpperiod" "pprof" "acknodelay" "nodelay" \
-		"interval" "resend" "nc" "sockbuf" "smuxbuf" "keepalive"
-
-	if ! grep -q "^${run_user}:" '/etc/passwd'; then
-		(
-			set -x
-			useradd -U -s '/usr/sbin/nologin' -d '/nonexistent' "$run_user" 2>/dev/null
-		)
-	fi
-
-	cat > "$supervisor_config_file"<<-EOF
-	[program:kcptun${current_instance_id}]
-	user=${run_user}
-	directory=${KCPTUN_INSTALL_DIR}
-	command=$(get_kcptun_server_file) -c "${config_file}"
-	process_name=%(program_name)s
-	autostart=true
-	redirect_stderr=true
-	stdout_logfile=$(get_current_file 'log')
-	stdout_logfile_maxbytes=1MB
-	stdout_logfile_backups=0
-	EOF
+if [ -n "$mod" ]; then
+chmod $mod "$dir"
+fi
 }
 
-# 设置防火墙开放端口
+local config_file=""
+config_file="$(get_current_file 'config')"
+local supervisor_config_file=""
+supervisor_config_file="$(get_current_file 'supervisor')"
+
+mk_file_dir "$config_file"
+mk_file_dir "$supervisor_config_file"
+
+if [ -n "$snmplog" ]; then
+mk_file_dir "$snmplog" '777'
+fi
+
+if ( echo "$listen_addr" | grep -q ":" ); then
+listen_addr="[${listen_addr}]"
+fi
+
+if ( echo "$target_addr" | grep -q ":" ); then
+target_addr="[${target_addr}]"
+fi
+
+cat > "$config_file"<<-EOF
+{
+"listen": "${listen_addr}:${listen_port}",
+"target": "${target_addr}:${target_port}",
+"key": "${key}",
+"crypt": "${crypt}",
+"mode": "${mode}",
+"mtu": ${mtu},
+"sndwnd": ${sndwnd},
+"rcvwnd": ${rcvwnd},
+"datashard": ${datashard},
+"parityshard": ${parityshard},
+"dscp": ${dscp},
+"nocomp": ${nocomp},
+"quiet": ${quiet},
+"tcp": ${tcp}
+}
+EOF
+
+write_configs_to_file() {
+install_jq
+local k; local v
+
+local json=""
+json="$(cat "$config_file")"
+for k in "$@"; do
+v="$(eval echo "\$$k")"
+
+if [ -n "$v" ]; then
+if is_number "$v" || [ "$v" = "false" ] || [ "$v" = "true" ]; then
+json="$(echo "$json" | $JQ_BIN ".$k=$v")"
+else
+json="$(echo "$json" | $JQ_BIN ".$k=\"$v\"")"
+fi
+fi
+done
+
+if [ -n "$json" ] && [ "$json" != "$(cat "$config_file")" ]; then
+echo "$json" >"$config_file"
+fi
+}
+
+write_configs_to_file "snmplog" "snmpperiod" "pprof" "acknodelay" "nodelay" \
+"interval" "resend" "nc" "sockbuf" "smuxbuf" "keepalive"
+
+if ! grep -q "^${run_user}:" '/etc/passwd'; then
+(
+set -x
+useradd -U -s '/usr/sbin/nologin' -d '/nonexistent' "$run_user" 2>/dev/null
+)
+fi
+
+cat > "$supervisor_config_file"<<-EOF
+[program:kcptun${current_instance_id}]
+user=${run_user}
+directory=${KCPTUN_INSTALL_DIR}
+command=$(get_kcptun_server_file) -c "${config_file}"
+process_name=%(program_name)s
+autostart=true
+redirect_stderr=true
+stdout_logfile=$(get_current_file 'log')
+stdout_logfile_maxbytes=1MB
+stdout_logfile_backups=0
+EOF
+}
+
+#Set firewall open ports
 set_firewall() {
-	if command_exists firewall-cmd; then
-		if ! ( firewall-cmd --state >/dev/null 2>&1 ); then
-			systemctl start firewalld >/dev/null 2>&1
-		fi
-		if [ "$?" = "0" ]; then
-			if [ -n "$current_listen_port" ]; then
-				firewall-cmd --zone=public --remove-port=${current_listen_port}/udp >/dev/null 2>&1
-			fi
+if command_exists firewall-cmd; then
+if ! ( firewall-cmd --state >/dev/null 2>&1 ); then
+systemctl start firewalld >/dev/null 2>&1
+fi
+if [ "$?" = "0" ]; then
+if [ -n "$current_listen_port" ]; then
+firewall-cmd --zone=public --remove-port=${current_listen_port}/udp >/dev/null 2>&1
+fi
 
-			if ! firewall-cmd --quiet --zone=public --query-port=${listen_port}/udp; then
-				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
-				firewall-cmd --reload
-			fi
-		else
-			cat >&1 <<-EOF
-			警告: 自动添加 firewalld 规则失败
-			如果有必要, 请手动添加端口 ${listen_port} 的防火墙规则:
-			    firewall-cmd --permanent --zone=public --add-port=${listen_port}/udp
-			    firewall-cmd --reload
-			EOF
-		fi
-	elif command_exists iptables; then
-		if ! ( service iptables status >/dev/null 2>&1 ); then
-			service iptables start >/dev/null 2>&1
-		fi
+if ! firewall-cmd --quiet --zone=public --query-port=${listen_port}/udp; then
+firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
+firewall-cmd --reload
+fi
+else
+cat >&1 <<-EOF
+Warning: Automatically adding firewalld rules failed
+If necessary, manually add a firewall rule for port ${listen_port}:
+firewall-cmd --permanent --zone=public --add-port=${listen_port}/udp
+firewall-cmd --reload
+EOF
+fi
+elif command_exists iptables; then
+if ! ( service iptables status >/dev/null 2>&1 ); then
+service iptables start >/dev/null 2>&1
+fi
 
-		if [ "$?" = "0" ]; then
-			if [ -n "$current_listen_port" ]; then
-				iptables -D INPUT -p udp --dport ${current_listen_port} -j ACCEPT >/dev/null 2>&1
-			fi
+if [ "$?" = "0" ]; then
+if [ -n "$current_listen_port" ]; then
+iptables -D INPUT -p udp --dport ${current_listen_port} -j ACCEPT >/dev/null 2>&1
+fi
 
-			if ! iptables -C INPUT -p udp --dport ${listen_port} -j ACCEPT >/dev/null 2>&1; then
-				iptables -I INPUT -p udp --dport ${listen_port} -j ACCEPT >/dev/null 2>&1
-				service iptables save
-				service iptables restart
-			fi
-		else
-			cat >&1 <<-EOF
-			警告: 自动添加 iptables 规则失败
-			如有必要, 请手动添加端口 ${listen_port} 的防火墙规则:
-			    iptables -I INPUT -p udp --dport ${listen_port} -j ACCEPT
-			    service iptables save
-			    service iptables restart
-			EOF
-		fi
-	fi
+if ! iptables -C INPUT -p udp --dport ${listen_port} -j ACCEPT >/dev/null 2>&1; then
+iptables -I INPUT -p udp --dport ${listen_port} -j ACCEPT >/dev/null 2>&1
+service iptables save
+service iptables restart
+fi
+else
+cat >&1 <<-EOF
+Warning: Automatically adding iptables rules failed
+If necessary, manually add a firewall rule for port ${listen_port}:
+iptables -I INPUT -p udp --dport ${listen_port} -j ACCEPT
+service iptables save
+service iptables restart
+EOF
+fi
+fi
 }
 
-# 选择一个实例
+# Select an instance
 select_instance() {
-	if [ "$(get_instance_count)" -gt 1 ]; then
-		cat >&1 <<-'EOF'
-		当前有多个 Kcptun 实例 (按最后修改时间排序):
-		EOF
+if [ "$(get_instance_count)" -gt 1 ]; then
+cat >&1 <<-'EOF'
+There are currently multiple Kcptun instances (sorted by last modification time):
+EOF
 
-		local files=""
-		files=$(ls -lt '/etc/supervisor/conf.d/' | grep "^-" | awk '{print $9}' | grep "^kcptun[0-9]*\.conf$")
-		local i=0
-		local array=""
-		local id=""
-		for file in $files; do
-			id="$(echo "$file" | grep -oE "[0-9]+")"
-			array="${array}${id}#"
+local files=""
+files=$(ls -lt '/etc/supervisor/conf.d/' | grep "^-" | awk '{print $9}' | grep "^kcptun[0-9]*\.conf$")
+local i=0
+local array=""
+local id=""
+for file in $files; do
+id="$(echo "$file" | grep -oE "[0-9]+")"
+array="${array}${id}#"
 
-			i=$(expr $i + 1)
-			echo "(${i}) ${file%.*}"
-		done
+i=$(expr $i + 1)
+echo "(${i}) ${file%.*}"
+done
 
-		local sel=""
-		while true
-		do
-			read -p "请选择 [1~${i}]: " sel
-			if [ -n "$sel" ]; then
-				if ! is_number "$sel" || [ $sel -lt 1 ] || [ $sel -gt $i ]; then
-					cat >&2 <<-EOF
-					请输入有效数字 1~${i}!
-					EOF
-					continue
-				fi
-			else
-				cat >&2 <<-EOF
-				请输入不能为空！
-				EOF
-				continue
-			fi
+local sel=""
+while true
+do
+read -p "Please select [1~${i}]: " sel
+if [ -n "$sel" ]; then
+if ! is_number "$sel" || [ $sel -lt 1 ] || [ $sel -gt $i ]; then
+cat >&2 <<-EOF
+Please enter a valid number 1~${i}!
+EOF
+continue
+fi
+else
+cat >&2 <<-EOF
+Please enter cannot be empty!
+EOF
+continue
+fi
 
-			current_instance_id=$(echo "$array" | cut -d '#' -f ${sel})
-			break
-		done
-	fi
+current_instance_id=$(echo "$array" | cut -d '#' -f ${sel})
+break
+done
+fi
 }
 
-# 通过当前服务端环境获取 Kcptun 服务端文件名
+# Get the Kcptun server file name through the current server environment
 get_kcptun_server_file() {
-	if [ -z "$file_suffix" ]; then
-		get_arch
-	fi
+if [ -z "$file_suffix" ]; then
+get_arch
+fi
 
-	echo "${KCPTUN_INSTALL_DIR}/server_$file_suffix"
+echo "${KCPTUN_INSTALL_DIR}/server_$file_suffix"
 }
 
-# 计算新实例的 ID
+# Calculate the ID of the new instance
 get_new_instance_id() {
-	if [ -f "/etc/supervisor/conf.d/kcptun.conf" ]; then
-		local i=2
-		while [ -f "/etc/supervisor/conf.d/kcptun${i}.conf" ]
-		do
-			i=$(expr $i + 1)
-		done
-		echo "$i"
-	fi
+if [ -f "/etc/supervisor/conf.d/kcptun.conf" ]; then
+local i=2
+while [ -f "/etc/supervisor/conf.d/kcptun${i}.conf" ]
+do
+i=$(expr $i + 1)
+done
+echo "$i"
+fi
 }
 
-# 获取已安装的 Kcptun 版本
+# Get the installed Kcptun version
 get_installed_version() {
-	local server_file=""
-	server_file="$(get_kcptun_server_file)"
+local server_file=""
+server_file="$(get_kcptun_server_file)"
 
-	if [ -f "$server_file" ]; then
-		if [ ! -x "$server_file" ]; then
-			chmod a+x "$server_file"
-		fi
+if [ -f "$server_file" ]; then
+if [ ! -x "$server_file" ]; then
+chmod a+x "$server_file"
+fi
 
-		echo "$(${server_file} -v 2>/dev/null | awk '{print $3}')"
-	fi
+echo "$(${server_file} -v 2>/dev/null | awk '{print $3}')"
+fi
 }
 
-# 加载当前选择实例的配置文件
+# Load the configuration file of the currently selected instance
 load_instance_config() {
-	local config_file=""
-	config_file="$(get_current_file 'config')"
+local config_file=""
+config_file="$(get_current_file 'config')"
 
-	if [ ! -s "$config_file" ]; then
-		cat >&2 <<-'EOF'
-		实例配置文件不存在或为空, 请检查!
-		EOF
-		exit 1
-	fi
+if [ ! -s "$config_file" ]; then
+cat >&2 <<-'EOF'
+The instance configuration file does not exist or is empty, please check!
+EOF
+exit 1
+fi
 
-	local config_content=""
-	config_content="$(cat ${config_file})"
+local config_content=""
+config_content="$(cat ${config_file})"
 
-	if [ -z "$(get_json_string "$config_content" '.listen')" ]; then
-		cat >&2 <<-EOF
-		实例配置文件存在错误, 请检查!
-		配置文件路径: ${config_file}
-		EOF
-		exit 1
-	fi
+if [ -z "$(get_json_string "$config_content" '.listen')" ]; then
+cat >&2 <<-EOF
+There is an error in the instance configuration file, please check!
+Configuration file path: ${config_file}
+EOF
+exit 1
+fi
 
-	local lines=""
-	lines="$(get_json_string "$config_content" 'to_entries | map("\(.key)=\(.value | @sh)") | .[]')"
+local lines=""
+lines="$(get_json_string "$config_content" 'to_entries | map("\(.key)=\(.value | @sh)") | .[]')"
 
-	OLDIFS=$IFS
-	IFS=$(printf '\n')
-	for line in $lines; do
-		eval "$line"
-	done
-	IFS=$OLDIFS
+OLDIFS=$IFS
+IFS=$(printf '\n')
+for line in $lines; do
+eval "$line"
+done
+IFS=$OLDIFS
 
-	if [ -n "$listen" ]; then
-		listen_port="$(echo "$listen" | rev | cut -d ':' -f1 | rev)"
-		listen_addr="$(echo "$listen" | sed "s/:${listen_port}$//" | grep -oE '[0-9a-fA-F\.:]*')"
-		listen=""
-	fi
-	if [ -n "$target" ]; then
-		target_port="$(echo "$target" | rev | cut -d ':' -f1 | rev)"
-		target_addr="$(echo "$target" | sed "s/:${target_port}$//" | grep -oE '[0-9a-fA-F\.:]*')"
-		target=""
-	fi
+if [ -n "$listen" ]; then
+listen_port="$(echo "$listen" | rev | cut -d ':' -f1 | rev)"
+listen_addr="$(echo "$listen" | sed "s/:${listen_port}$//" | grep -oE '[0-9a-fA-F\.:]*')"
+listen=""
+fi
+if [ -n "$target" ]; then
+target_port="$(echo "$target" | rev | cut -d ':' -f1 | rev)"
+target_addr="$(echo "$target" | sed "s/:${target_port}$//" | grep -oE '[0-9a-fA-F\.:]*')"
+target=""
+fi
 
-	if [ -n "$listen_port" ]; then
-		current_listen_port="$listen_port"
-	fi
+if [ -n "$listen_port" ]; then
+current_listen_port="$listen_port"
+fi
 }
 
-# 显示服务端 Kcptun 版本，和客户端文件的下载地址
+# Display the server Kcptun version and the download address of the client file
 show_version_and_client_url() {
-	local version=""
-	version="$(get_installed_version)"
-	if [ -n "$version" ]; then
-		cat >&1 <<-EOF
+local version=""
+version="$(get_installed_version)"
+if [ -n "$version" ]; then
+cat >&1 <<-EOF
 
-		当前安装的 Kcptun 版本为: ${version}
-		EOF
-	fi
+The currently installed Kcptun version is: ${version}
+EOF
+fi
 
-	if [ -n "$kcptun_release_html_url" ]; then
-		cat >&1 <<-EOF
-		请自行前往:
-		  ${kcptun_release_html_url}
-		手动下载客户端文件
-		EOF
-	fi
+if [ -n "$kcptun_release_html_url" ]; then
+cat >&1 <<-EOF
+Please go to:
+${kcptun_release_html_url}
+Download client files manually
+EOF
+fi
 }
 
-# 显示当前选择实例的信息
+# Display information about the currently selected instance
 show_current_instance_info() {
-	local server_ip=""
-	server_ip="$(get_server_ip)"
+local server_ip=""
+server_ip="$(get_server_ip)"
 
-	printf '服务器IP: \033[41;37m %s \033[0m\n' "$server_ip"
-	printf '端口: \033[41;37m %s \033[0m\n' "$listen_port"
-	printf '加速地址: \033[41;37m %s:%s \033[0m\n' "$target_addr" "$target_port"
+printf 'Server IP: \033[41;37m %s \033[0m\n' "$server_ip"
+printf 'Port: \033[41;37m %s \033[0m\n' "$listen_port"
+printf 'Acceleration address: \033[41;37m %s:%s \033[0m\n' "$target_addr" "$target_port"
 
-	show_configs() {
-		local k; local v
-		for k in "$@"; do
-			v="$(eval echo "\$$k")"
-			if [ -n "$v" ]; then
-				printf '%s: \033[41;37m %s \033[0m\n' "$k" "$v"
-			fi
-		done
-	}
+show_configs() {
+local k; local v
+for k in "$@"; do
+v="$(eval echo "\$$k")"
+if [ -n "$v" ]; then
+printf '%s: \033[41;37m %s \033[0m\n' "$k" "$v"
+fi
+done
+}
 
-	show_configs "key" "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
-		"parityshard" "dscp" "nocomp" "quiet" "tcp" "nodelay" "interval" "resend" \
-		"nc" "acknodelay" "sockbuf" "smuxbuf" "keepalive"
+show_configs "key" "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
+"parityshard" "dscp" "nocomp" "quiet" "tcp" "nodelay" "interval" "resend" \
+"nc" "acknodelay" "sockbuf" "smuxbuf" "keepalive"
 
-	show_version_and_client_url
+show_version_and_client_url
 
-	install_jq
-	local client_config=""
+install_jq
+local client_config=""
 
-	# 这里输出的是客户端所使用的配置信息
-	# 客户端的 *remoteaddr* 端口号为服务端的 *listen_port*
-	# 客户端的 *localaddr* 端口号被设置为了服务端的加速端口
-	client_config="$(cat <<-EOF
-	{
-	  "localaddr": ":${target_port}",
-	  "remoteaddr": "${server_ip}:${listen_port}",
-	  "key": "${key}"
-	}
-	EOF
-	)"
+# What is output here is the configuration information used by the client
+# The *remoteaddr* port number of the client is the *listen_port* of the server
+# The *localaddr* port number of the client is set to the acceleration port of the server
+client_config="$(cat <<-EOF
+{
+"localaddr": ":${target_port}",
+"remoteaddr": "${server_ip}:${listen_port}",
+"key": "${key}"
+}
+EOF
+)"
 
-	gen_client_configs() {
-		local k; local v
-		for k in "$@"; do
-			if [ "$k" = "sndwnd" ]; then
-				v="$rcvwnd"
-			elif [ "$k" = "rcvwnd" ]; then
-				v="$sndwnd"
-			else
-				v="$(eval echo "\$$k")"
-			fi
+gen_client_configs() {
+local k; local v
+for k in "$@"; do
+if [ "$k" = "sndwnd" ]; then
+v="$rcvwnd"
+elif [ "$k" = "rcvwnd" ]; then
+v="$sndwnd"
+else
+v="$(eval echo "\$$k")"
+fi
 
-			if [ -n "$v" ]; then
-				if is_number "$v" || [ "$v" = "true" ] || [ "$v" = "false" ]; then
-					client_config="$(echo "$client_config" | $JQ_BIN -r ".${k}=${v}")"
-				else
-					client_config="$(echo "$client_config" | $JQ_BIN -r ".${k}=\"${v}\"")"
-				fi
-			fi
-		done
-	}
+if [ -n "$v" ]; then
+if is_number "$v" || [ "$v" = "true" ] || [ "$v" = "false" ]; then
+client_config="$(echo "$client_config" | $JQ_BIN -r ".${k}=${v}")"
+else
+client_config="$(echo "$client_config" | $JQ_BIN -r ".${k}=\"${v}\"")"
+fi
+fi
+done
+}
 
-	gen_client_configs "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
-		"parityshard" "dscp" "nocomp" "quiet" "tcp" "nodelay" "interval" "resend" \
-		"nc" "acknodelay" "sockbuf" "smuxbuf" "keepalive"
+gen_client_configs "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
+"parityshard" "dscp" "nocomp" "quiet" "tcp" "nodelay" "interval" "resend" \
+"nc" "acknodelay" "sockbuf" "smuxbuf" "keepalive"
 
-	cat >&1 <<-EOF
+cat >&1 <<-EOF
 
-	可使用的客户端配置文件为:
-	${client_config}
-	EOF
+The available client profiles are:
+${client_config}
+EOF
 
-	local mobile_config="key=${key}"
-	gen_mobile_configs() {
-		local k; local v
-		for k in "$@"; do
-			if [ "$k" = "sndwnd" ]; then
-				v="$rcvwnd"
-			elif [ "$k" = "rcvwnd" ]; then
-				v="$sndwnd"
-			else
-				v="$(eval echo "\$$k")"
-			fi
+local mobile_config="key=${key}"
+gen_mobile_configs() {
+local k; local v
+for k in "$@"; do
+if [ "$k" = "sndwnd" ]; then
+v="$rcvwnd"
+elif [ "$k" = "rcvwnd" ]; then
+v="$sndwnd"
+else
+v="$(eval echo "\$$k")"
+fi
 
-			if [ -n "$v" ]; then
-				if [ "$v" = "false" ]; then
-					continue
-				elif [ "$v" = "true" ]; then
-					mobile_config="${mobile_config};${k}"
-				else
-					mobile_config="${mobile_config};${k}=${v}"
-				fi
-			fi
-		done
-	}
+if [ -n "$v" ]; then
+if [ "$v" = "false" ]; then
+continue
+elif [ "$v" = "true" ]; then
+mobile_config="${mobile_config};${k}"
+else
+mobile_config="${mobile_config};${k}=${v}"
+fi
+fi
+done
+}
 
-	gen_mobile_configs "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
-		"parityshard" "dscp" "nocomp" "quiet" "tcp" "nodelay" "interval" "resend" \
-		"nc" "acknodelay" "sockbuf" "smuxbuf" "keepalive"
+gen_mobile_configs "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
+"parityshard" "dscp" "nocomp" "quiet" "tcp" "nodelay" "interval" "resend" \
+"nc" "acknodelay" "sockbuf" "smuxbuf" "keepalive"
 
-	cat >&1 <<-EOF
+cat >&1 <<-EOF
 
-	手机端参数可以使用:
-	  ${mobile_config}
+Mobile terminal parameters can be used:
+${mobile_config}
 
-	EOF
+EOF
 }
 
 do_install() {
-	check_root
-	disable_selinux
-	installed_check
-	set_kcptun_config
-	install_deps
-	install_kcptun
-	install_supervisor
-	gen_kcptun_config
-	set_firewall
-	start_supervisor
-	enable_supervisor
+check_root
+disable_selinux
+installed_check
+set_kcptun_config
+install_deps
+install_kcptun
+install_supervisor
+gen_kcptun_config
+set_firewall
+start_supervisor
+enable_supervisor
 
-	cat >&1 <<-EOF
+cat >&1 <<-EOF
 
-	恭喜! Kcptun 服务端安装成功。
-	EOF
+Congratulations! The Kcptun server is successfully installed.
+EOF
 
-	show_current_instance_info
+show_current_instance_info
 
-	cat >&1 <<-EOF
-	Kcptun 安装目录: ${KCPTUN_INSTALL_DIR}
+cat >&1 <<-EOF
+Kcptun installation directory: ${KCPTUN_INSTALL_DIR}
 
-	已将 Supervisor 加入开机自启,
-	Kcptun 服务端会随 Supervisor 的启动而启动
+Supervisor has been added to start automatically at boot.
+The Kcptun server will be started when the Supervisor is started.
 
-	更多使用说明: ${0} help
+More instructions: ${0} help
 
-	如果这个脚本帮到了你，你可以请作者喝瓶可乐:
-	  https://blog.kuoruan.com/donate
+If this script helps you, you can buy the author a Coke:
+https://blog.kuoruan.com/donate
 
-	享受加速的快感吧！
-	EOF
+Enjoy the thrill of acceleration!
+EOF
 }
 
-# 卸载操作
+# Uninstall operation
 do_uninstall() {
-	check_root
-	cat >&1 <<-'EOF'
-	你选择了卸载 Kcptun 服务端
-	EOF
-	any_key_to_continue
-	echo "正在卸载 Kcptun 服务端并停止 Supervisor..."
+check_root
+cat >&1 <<-'EOF'
+You chose to uninstall the Kcptun server
+EOF
+any_key_to_continue
+echo "Uninstalling Kcptun server and stopping Supervisor..."
 
-	if command_exists supervisorctl; then
-		supervisorctl shutdown
-	fi
+if command_exists supervisorctl; then
+supervisorctl shutdown
+fi
 
-	if command_exists systemctl; then
-		systemctl stop supervisord.service
-	elif command_exists serice; then
-		service supervisord stop
-	fi
+if command_exists systemctl; then
+systemctl stop supervisord.service
+elif command_exists serice; then
+service supervisord stop
+fi
 
-	(
-		set -x
-		rm -f "/etc/supervisor/conf.d/kcptun*.conf"
-		rm -rf "$KCPTUN_INSTALL_DIR"
-		rm -rf "$KCPTUN_LOG_DIR"
-	)
+(
+set -x
+rm -f "/etc/supervisor/conf.d/kcptun*.conf"
+rm -rf "$KCPTUN_INSTALL_DIR"
+rm -rf "$KCPTUN_LOG_DIR"
+)
 
-	cat >&1 <<-'EOF'
-	是否同时卸载 Supervisor ?
-	注意: Supervisor 的配置文件将同时被删除
-	EOF
+cat >&1 <<-'EOF'
+Do you want to uninstall Supervisor at the same time?
+Note: Supervisor configuration files will be deleted at the same time
+EOF
 
-	read -p "(默认: 不卸载) 请选择 [y/n]: " yn
-	if [ -n "$yn" ]; then
-		case "$(first_character "$yn")" in
-			y|Y)
-				if command_exists systemctl; then
-					systemctl disable supervisord.service
-					rm -f "/lib/systemd/system/supervisord.service" \
-						"/etc/systemd/system/supervisord.service"
-				elif command_exists service; then
-					if [ -z "$lsb_dist" ]; then
-						get_os_info
-					fi
-					case "$lsb_dist" in
-						ubuntu|debian|raspbian)
-							(
-								set -x
-								update-rc.d -f supervisord remove
-							)
-							;;
-						fedora|centos|redhat|oraclelinux|photon)
-							(
-								set -x
-								chkconfig supervisord off
-								chkconfig --del supervisord
-							)
-							;;
-					esac
-					rm -f '/etc/init.d/supervisord'
-				fi
+read -p "(Default: Do not uninstall) Please select [y/n]: " yn
+if [ -n "$yn" ]; then
+case "$(first_character "$yn")" in
+y|Y)
+if command_exists systemctl; then
+systemctl disable supervisord.service
+rm -f "/lib/systemd/system/supervisord.service" \
+"/etc/systemd/system/supervisord.service"
+elif command_exists service; then
+if [ -z "$lsb_dist" ]; then
+get_os_info
+fi
+case "$lsb_dist" in
+ubuntu|debian|raspbian)
+(
+set -x
+update-rc.d -f supervisord remove
+)
+;;
+fedora|centos|redhat|oraclelinux|photon)
+(
+set -x
+chkconfig supervisord off
+chkconfig --del supervisord
+)
+;;
+esac
+rm -f '/etc/init.d/supervisord'
+fi
 
-				(
-					set -x
-					# 新版使用 pip 卸载
-					if command_exists pip; then
-						pip uninstall -y supervisor 2>/dev/null || true
-					fi
+(
+set -x
+# Use pip to uninstall the new version
+if command_exists pip; then
+pip uninstall -y supervisor 2>/dev/null || true
+fi
 
-					# 旧版使用 easy_install 卸载
-					if command_exists easy_install; then
-						rm -rf "$(easy_install -mxN supervisor | grep 'Using.*supervisor.*\.egg' | awk '{print $2}')"
-					fi
+# Use easy_install to uninstall the old version
+if command_exists easy_install; then
+rm -rf "$(easy_install -mxN supervisor | grep 'Using.*supervisor.*\.egg' | awk '{print $2}')"
+fi
 
-					rm -rf '/etc/supervisor/'
-					rm -f '/usr/local/bin/supervisord' \
-						'/usr/local/bin/supervisorctl' \
-						'/usr/local/bin/pidproxy' \
-						'/usr/local/bin/echo_supervisord_conf' \
-						'/usr/bin/supervisord' \
-						'/usr/bin/supervisorctl' \
-						'/usr/bin/pidproxy' \
-						'/usr/bin/echo_supervisord_conf'
-				)
-				;;
-			n|N|*)
-				start_supervisor
-				;;
-		esac
-	fi
+rm -rf '/etc/supervisor/'
+rm -f '/usr/local/bin/supervisord' \
+'/usr/local/bin/supervisorctl' \
+'/usr/local/bin/pidproxy' \
+'/usr/local/bin/echo_supervisord_conf' \
+'/usr/bin/supervisord' \
+'/usr/bin/supervisorctl' \
+'/usr/bin/pidproxy' \
+'/usr/bin/echo_supervisord_conf'
+)
+;;
+n|N|*)
+start_supervisor
+;;
+esac
+fi
 
-	cat >&1 <<-EOF
-	卸载完成, 欢迎再次使用。
-	注意: 脚本没有自动卸载 python-pip 和 python-setuptools（旧版脚本使用）
-	如有需要, 你可以自行卸载。
-	EOF
+cat >&1 <<-EOF
+Uninstallation completed, welcome to use again.
+Note: The script does not automatically uninstall python-pip and python-setuptools (used by older scripts)
+If necessary, you can uninstall it yourself.
+EOF
 }
 
-# 更新
+# renew
 do_update() {
-	pre_ckeck
+pre_ckeck
 
-	cat >&1 <<-EOF
-	你选择了检查更新, 正在开始操作...
-	EOF
+cat >&1 <<-EOF
+You chose to check for updates, starting...
+EOF
 
-	if get_shell_version_info; then
-		local shell_path=$0
+if get_shell_version_info; then
+local shell_path=$0
 
-		if [ $new_shell_version -gt $SHELL_VERSION ]; then
-			cat >&1 <<-EOF
-			发现一键安装脚本更新, 版本号: ${new_shell_version}
-			更新说明:
-			$(printf '%s\n' "$shell_change_log")
-			EOF
-			any_key_to_continue
+if [ $new_shell_version -gt $SHELL_VERSION ]; then
+cat >&1 <<-EOF
+Found a one-click installation script update, version number: ${new_shell_version}
+Release Notes:
+$(printf '%s\n' "$shell_change_log")
+EOF
+any_key_to_continue
 
-			mv -f "$shell_path" "$shell_path".bak
+mv -f "$shell_path" "$shell_path".bak
 
-			download_file "$new_shell_url" "$shell_path"
-			chmod a+x "$shell_path"
+download_file "$new_shell_url" "$shell_path"
+chmod a+x "$shell_path"
 
-			sed -i -r "s/^CONFIG_VERSION=[0-9]+/CONFIG_VERSION=${CONFIG_VERSION}/" "$shell_path"
-			sed -i -r "s/^INIT_VERSION=[0-9]+/INIT_VERSION=${INIT_VERSION}/" "$shell_path"
-			rm -f "$shell_path".bak
+sed -i -r "s/^CONFIG_VERSION=[0-9]+/CONFIG_VERSION=${CONFIG_VERSION}/" "$shell_path"
+sed -i -r "s/^INIT_VERSION=[0-9]+/INIT_VERSION=${INIT_VERSION}/" "$shell_path"
+rm -f "$shell_path".bak
 
-			clear
-			cat >&1 <<-EOF
-			安装脚本已更新到 v${new_shell_version}, 正在运行新的脚本...
-			EOF
+clear
+cat >&1 <<-EOF
+The installation script has been updated to v${new_shell_version}, running the new script...
+EOF
 
-			bash "$shell_path" update
-			exit 0
-		fi
+bash "$shell_path" update
+exit 0
+fi
 
-		if [ $new_config_version -gt $CONFIG_VERSION ]; then
-			cat >&1 <<-EOF
-			发现 Kcptun 配置更新, 版本号: v${new_config_version}
-			更新说明:
-			$(printf '%s\n' "$config_change_log")
-			需要重新设置 Kcptun
-			EOF
-			any_key_to_continue
+if [ $new_config_version -gt $CONFIG_VERSION ]; then
+cat >&1 <<-EOF
+Found Kcptun configuration update, version number: v${new_config_version}
+Release Notes:
+$(printf '%s\n' "$config_change_log")
+Kcptun needs to be reset
+EOF
+any_key_to_continue
 
-			instance_reconfig
+instance_reconfig
 
-			sed -i "s/^CONFIG_VERSION=${CONFIG_VERSION}/CONFIG_VERSION=${new_config_version}/" \
-				"$shell_path"
-		fi
+sed -i "s/^CONFIG_VERSION=${CONFIG_VERSION}/CONFIG_VERSION=${new_config_version}/" \
+"$shell_path"
+fi
 
-		if [ $new_init_version -gt $INIT_VERSION ]; then
-			cat >&1 <<-EOF
-			发现服务启动脚本文件更新, 版本号: v${new_init_version}
-			更新说明:
-			$(printf '%s\n' "$init_change_log")
-			EOF
+if [ $new_init_version -gt $INIT_VERSION ]; then
+cat >&1 <<-EOF
+Found that the service startup script file has been updated, version number: v${new_init_version}
+Release Notes:
+$(printf '%s\n' "$init_change_log")
+EOF
 
-			any_key_to_continue
+any_key_to_continue
 
-			download_startup_file
-			set -sed -i "s/^INIT_VERSION=${INIT_VERSION}/INIT_VERSION=${new_init_version}/" \
-				"$shell_path"
-		fi
-	fi
+download_startup_file
+set -sed -i "s/^INIT_VERSION=${INIT_VERSION}/INIT_VERSION=${new_init_version}/" \
+"$shell_path"
+fi
+fi
 
-	echo "开始获取 Kcptun 版本信息..."
-	get_kcptun_version_info
+echo "Start getting Kcptun version information..."
+get_kcptun_version_info
 
-	local cur_tag_name=""
-	cur_tag_name="$(get_installed_version)"
+local cur_tag_name=""
+cur_tag_name="$(get_installed_version)"
 
-	if [ -n "$cur_tag_name" ] && is_number "$cur_tag_name" && [ ${#cur_tag_name} -eq 8 ]; then
-		cur_tag_name=v"$cur_tag_name"
-	fi
+if [ -n "$cur_tag_name" ] && is_number "$cur_tag_name" && [ ${#cur_tag_name} -eq 8 ]; then
+cur_tag_name=v"$cur_tag_name"
+fi
 
-	if [ -n "$kcptun_release_tag_name" ] && [ "$kcptun_release_tag_name" != "$cur_tag_name" ]; then
-		cat >&1 <<-EOF
-		发现 Kcptun 新版本 ${kcptun_release_tag_name}
-		$([ "$kcptun_release_prerelease" = "true" ] && printf "\033[41;37m 注意: 该版本为预览版, 请谨慎更新 \033[0m")
-		更新说明:
-		$(printf '%s\n' "$kcptun_release_body")
-		EOF
-		any_key_to_continue
+if [ -n "$kcptun_release_tag_name" ] && [ "$kcptun_release_tag_name" != "$cur_tag_name" ]; then
+cat >&1 <<-EOF
+Found Kcptun new version ${kcptun_release_tag_name}
+$([ "$kcptun_release_prerelease" = "true" ] && printf "\033[41;37m Note: This version is a preview version, please update with caution\033[0m")
+Release Notes:
+$(printf '%s\n' "$kcptun_release_body")
+EOF
+any_key_to_continue
 
-		install_kcptun
-		start_supervisor
+install_kcptun
+start_supervisor
 
-		show_version_and_client_url
-	else
-		cat >&1 <<-'EOF'
-		未发现 Kcptun 更新...
-		EOF
-	fi
+show_version_and_client_url
+else
+cat >&1 <<-'EOF'
+Kcptun update not found...
+EOF
+fi
 }
 
-# 添加实例
+# Add instance
 instance_add() {
-	pre_ckeck
+pre_ckeck
 
-	cat >&1 <<-'EOF'
-	你选择了添加实例, 正在开始操作...
-	EOF
-	current_instance_id="$(get_new_instance_id)"
+cat >&1 <<-'EOF'
+You have chosen to add an instance, starting the operation...
+EOF
+current_instance_id="$(get_new_instance_id)"
 
-	set_kcptun_config
-	gen_kcptun_config
-	set_firewall
-	start_supervisor
+set_kcptun_config
+gen_kcptun_config
+set_firewall
+start_supervisor
 
-	cat >&1 <<-EOF
-	恭喜, 实例 kcptun${current_instance_id} 添加成功!
-	EOF
-	show_current_instance_info
+cat >&1 <<-EOF
+Congratulations, instance kcptun${current_instance_id} was added successfully!
+EOF
+show_current_instance_info
 }
 
-# 删除实例
+# Delete instance
 instance_del() {
-	pre_ckeck
+pre_ckeck
 
-	if [ -n "$1" ]; then
-		if is_number "$1"; then
-			if [ "$1" != "1" ]; then
-				current_instance_id="$1"
-			fi
-		else
-			cat >&2 <<-EOF
-			参数有误, 请使用 $0 del <id>
-			<id> 为实例ID, 当前共有 $(get_instance_count) 个实例
-			EOF
+if [ -n "$1" ]; then
+if is_number "$1"; then
+if [ "$1" != "1" ]; then
+current_instance_id="$1"
+fi
+else
+cat >&2 <<-EOF
+The parameter is wrong, please use $0 del <id>
+<id> is the instance ID, there are currently $(get_instance_count) instances in total
+EOF
 
-			exit 1
-		fi
-	fi
+exit 1
+fi
+fi
 
-	cat >&1 <<-EOF
-	你选择了删除实例 kcptun${current_instance_id}
-	注意: 实例删除后无法恢复
-	EOF
-	any_key_to_continue
+cat >&1 <<-EOF
+You chose to delete instance kcptun${current_instance_id}
+Note: Instances cannot be restored after being deleted.
+EOF
+any_key_to_continue
 
-	# 获取实例的 supervisor 配置文件
-	supervisor_config_file="$(get_current_file 'supervisor')"
-	if [ ! -f "$supervisor_config_file" ]; then
-		echo "你选择的实例 kcptun${current_instance_id} 不存在!"
-		exit 1
-	fi
+# Get the supervisor configuration file of the instance
+supervisor_config_file="$(get_current_file 'supervisor')"
+if [ ! -f "$supervisor_config_file" ]; then
+echo "The instance you selected kcptun${current_instance_id} does not exist!"
+exit 1
+fi
 
-	current_config_file="$(get_current_file 'config')"
-	current_log_file="$(get_current_file 'log')"
-	current_snmp_log_file="$(get_current_file 'snmp')"
+current_config_file="$(get_current_file 'config')"
+current_log_file="$(get_current_file 'log')"
+current_snmp_log_file="$(get_current_file 'snmp')"
 
-	(
-		set -x
-		rm -f "$supervisor_config_file" \
-			"$current_config_file" \
-			"$current_log_file" \
-			"$current_snmp_log_file"
-	)
+(
+set -x
+rm -f "$supervisor_config_file" \
+"$current_config_file" \
+"$current_log_file" \
+"$current_snmp_log_file"
+)
 
-	start_supervisor
+start_supervisor
 
-	cat >&1 <<-EOF
-	实例 kcptun${current_instance_id} 删除成功!
-	EOF
+cat >&1 <<-EOF
+Instance kcptun${current_instance_id} deleted successfully!
+EOF
 }
 
-# 显示实例信息
+# Display instance information
 instance_show() {
-	pre_ckeck
+pre_ckeck
 
-	if [ -n "$1" ]; then
-		if is_number "$1"; then
-			if [ "$1" != "1" ]; then
-				current_instance_id="$1"
-			fi
-		else
-			cat >&2 <<-EOF
-			参数有误, 请使用 $0 show <id>
-			<id> 为实例ID, 当前共有 $(get_instance_count) 个实例
-			EOF
+if [ -n "$1" ]; then
+if is_number "$1"; then
+if [ "$1" != "1" ]; then
+current_instance_id="$1"
+fi
+else
+cat >&2 <<-EOF
+The parameter is wrong, please use $0 show <id>
+<id> is the instance ID, there are currently $(get_instance_count) instances in total
+EOF
 
-			exit 1
-		fi
-	fi
+exit 1
+fi
+fi
 
-	echo "你选择了查看实例 kcptun${current_instance_id} 的配置, 正在读取..."
+echo "You chose to view the configuration of instance kcptun${current_instance_id}, reading..."
 
-	load_instance_config
+load_instance_config
 
-	echo "实例 kcptun${current_instance_id} 的配置信息如下:"
-	show_current_instance_info
+echo "The configuration information of instance kcptun${current_instance_id} is as follows:"
+show_current_instance_info
 }
 
-# 显示实例日志
+# Display instance logs
 instance_log() {
-	pre_ckeck
+pre_ckeck
 
-	if [ -n "$1" ]; then
-		if is_number "$1"; then
-			if [ "$1" != "1" ]; then
-				current_instance_id="$1"
-			fi
-		else
-			cat >&2 <<-EOF
+if [ -n "$1" ]; then
+if is_number "$1"; then
+if [ "$1" != "1" ]; then
+current_instance_id="$1"
+fi
+else
+cat >&2 <<-EOF
 
-			参数有误, 请使用 $0 log <id>
-			<id> 为实例ID, 当前共有 $(get_instance_count) 个实例
-			EOF
+The parameter is incorrect, please use $0 log <id>
+<id> is the instance ID, there are currently $(get_instance_count) instances in total
+EOF
 
-			exit 1
-		fi
-	fi
+exit 1
+fi
+fi
 
-	echo "你选择了查看实例 kcptun${current_instance_id} 的日志, 正在读取..."
+echo "You chose to view the log of instance kcptun${current_instance_id}, reading..."
 
-	local log_file=""
-	log_file="$(get_current_file 'log')"
+local log_file=""
+log_file="$(get_current_file 'log')"
 
-	if [ -f "$log_file" ]; then
-		cat >&1 <<-EOF
-		实例 kcptun${current_instance_id} 的日志信息如下:
-		注: 日志实时刷新, 按 Ctrl+C 退出日志查看
-		EOF
-		tail -n 20 -f "$log_file"
-	else
-		cat >&2 <<-EOF
-		未找到实例 kcptun${current_instance_id} 的日志文件...
-		EOF
-		exit 1
-	fi
+if [ -f "$log_file" ]; then
+cat >&1 <<-EOF
+The log information of instance kcptun${current_instance_id} is as follows:
+Note: The log is refreshed in real time. Press Ctrl+C to exit log viewing.
+EOF
+tail -n 20 -f "$log_file"
+else
+cat >&2 <<-EOF
+Log file not found for instance kcptun${current_instance_id}...
+EOF
+exit 1
+fi
 }
 
-# 重新配置实例
+# Reconfigure the instance
 instance_reconfig() {
-	pre_ckeck
+pre_ckeck
 
-	if [ -n "$1" ]; then
-		if is_number "$1"; then
-			if [ "$1" != "1" ]; then
-				current_instance_id="$1"
-			fi
-		else
-			cat >&2 <<-EOF
-			参数有误, 请使用 $0 reconfig <id>
-			<id> 为实例ID, 当前共有 $(get_instance_count) 个实例
-			EOF
+if [ -n "$1" ]; then
+if is_number "$1"; then
+if [ "$1" != "1" ]; then
+current_instance_id="$1"
+fi
+else
+cat >&2 <<-EOF
+The parameter is incorrect, please use $0 reconfig <id>
+<id> is the instance ID, there are currently $(get_instance_count) instances in total
+EOF
 
-			exit 1
-		fi
-	fi
+exit 1
+fi
+fi
 
-	cat >&1 <<-EOF
-	你选择了重新配置实例 kcptun${current_instance_id}, 正在开始操作...
-	EOF
+cat >&1 <<-EOF
+You chose to reconfigure instance kcptun${current_instance_id}, starting the operation...
+EOF
 
-	if [ ! -f "$(get_current_file 'supervisor')" ]; then
-		cat >&2 <<-EOF
-		你选择的实例 kcptun${current_instance_id} 不存在!
-		EOF
-		exit 1
-	fi
+if [ ! -f "$(get_current_file 'supervisor')" ]; then
+cat >&2 <<-EOF
+The instance kcptun${current_instance_id} you selected does not exist!
+EOF
+exit 1
+fi
 
-	local sel=""
-	cat >&1 <<-'EOF'
-	请选择操作:
-	(1) 重新配置实例所有选项
-	(2) 直接修改实例配置文件
-	EOF
-	read -p "(默认: 1) 请选择: " sel
-	echo
-	[ -z "$sel" ] && sel="1"
+local sel=""
+cat >&1 <<-'EOF'
+Please select an action:
+(1) Reconfigure all options of the instance
+(2) Directly modify the instance configuration file
+EOF
+read -p "(Default: 1) Please select: " sel
+echo
+[ -z "$sel" ] && sel="1"
 
-	case "$(first_character "$sel")" in
-		2)
-			echo "正在打开配置文件, 请手动修改..."
-			local config_file=""
-			config_file="$(get_current_file 'config')"
-			edit_config_file() {
-				if [ ! -f "$config_file" ]; then
-					return 1
-				fi
+case "$(first_character "$sel")" in
+2)
+echo "Opening configuration file, please modify it manually..."
+local config_file=""
+config_file="$(get_current_file 'config')"
+edit_config_file() {
+if [ ! -f "$config_file" ]; then
+return 1
+fi
 
-				if command_exists vim; then
-					vim "$config_file"
-				elif command_exists vi; then
-					vi "$config_file"
-				elif command_exists gedit; then
-					gedit "$config_file"
-				else
-					echo "未找到可用的编辑器, 正在进入全新配置..."
-					return 1
-				fi
+if command_exists vim; then
+vim "$config_file"
+elif command_exists vi; then
+vi "$config_file"
+elif command_exists gedit; then
+gedit "$config_file"
+else
+echo "No available editor found, entering new configuration..."
+return 1
+fi
 
-				load_instance_config
-			}
-
-			if ! edit_config_file; then
-				set_kcptun_config
-			fi
-			;;
-		1|*)
-			load_instance_config
-			set_kcptun_config
-			;;
-	esac
-
-	gen_kcptun_config
-	set_firewall
-
-	if command_exists supervisorctl; then
-		supervisorctl restart "kcptun${current_instance_id}"
-
-		if [ "$?" != "0" ]; then
-			cat >&2 <<-'EOF'
-			重启 Supervisor 失败, Kcptun 无法正常工作!
-			请查看日志获取原因，或者反馈给脚本作者。
-			EOF
-			exit 1
-		fi
-	else
-		start_supervisor
-	fi
-
-	cat >&1 <<-EOF
-
-	恭喜, Kcptun 服务端配置已更新!
-	EOF
-	show_current_instance_info
+load_instance_config
 }
 
-#手动安装
+if ! edit_config_file; then
+set_kcptun_config
+fi
+;;
+1|*)
+load_instance_config
+set_kcptun_config
+;;
+esac
+
+gen_kcptun_config
+set_firewall
+
+if command_exists supervisorctl; then
+supervisorctl restart "kcptun${current_instance_id}"
+
+if [ "$?" != "0" ]; then
+cat >&2 <<-'EOF'
+Failed to restart Supervisor, Kcptun cannot work properly!
+Please check the log for the reason, or give feedback to the script author.
+EOF
+exit 1
+fi
+else
+start_supervisor
+fi
+
+cat >&1 <<-EOF
+
+Congratulations, the Kcptun server configuration has been updated!
+EOF
+show_current_instance_info
+}
+
+#Manual installation
 manual_install() {
-	pre_ckeck
+pre_ckeck
 
-	cat >&1 <<-'EOF'
-	你选择了自定义版本安装, 正在开始操作...
-	EOF
+cat >&1 <<-'EOF'
+You have chosen a customized version installation, starting the operation...
+EOF
 
-	local tag_name="$1"
+local tag_name="$1"
 
-	while true
-	do
-		if [ -z "$tag_name" ]; then
-			cat >&1 <<-'EOF'
-			请输入你想安装的 Kcptun 版本的完整 TAG
-			EOF
-			read -p "(例如: v20160904): " tag_name
-			if [ -z "$tag_name" ]; then
-				echo "输入无效, 请重新输入!"
-				continue
-			fi
-		fi
+while true
+do
+if [ -z "$tag_name" ]; then
+cat >&1 <<-'EOF'
+Please enter the complete TAG of the Kcptun version you want to install
+EOF
+read -p "(for example: v20160904): " tag_name
+if [ -z "$tag_name" ]; then
+echo "Invalid input, please re-enter!"
+continue
+fi
+fi
 
-		if [ "$tag_name" = "SNMP_Milestone" ]; then
-			echo "不支持此版本, 请重新输入!"
-			tag_name=""
-			continue
-		fi
+if [ "$tag_name" = "SNMP_Milestone" ]; then
+echo "This version is not supported, please re-enter!"
+tag_name=""
+continue
+fi
 
-		local version_num=""
-		version_num=$(echo "$tag_name" | grep -oE "[0-9]+" || "0")
-		if [ ${#version_num} -eq 8 ] && [ $version_num -le 20160826 ]; then
-			echo "不支持安装 v20160826 及以前版本"
-			tag_name=""
-			continue
-		fi
+local version_num=""
+version_num=$(echo "$tag_name" | grep -oE "[0-9]+" || "0")
+if [ ${#version_num} -eq 8 ] && [ $version_num -le 20160826 ]; then
+echo "Installation of v20160826 and previous versions is not supported"
+tag_name=""
+continue
+fi
 
-		echo "正在获取信息，请稍候..."
-		get_kcptun_version_info "$tag_name"
-		if [ "$?" != "0" ]; then
-			cat >&2 <<-EOF
-			未找到对应版本下载地址 (TAG: ${tag_name}), 请重新输入!
-			你可以前往:
-			  ${KCPTUN_TAGS_URL}
-			查看所有可用 TAG
-			EOF
-			tag_name=""
-			continue
-		else
-			cat >&1 <<-EOF
-			已找到 Kcptun 版本信息, TAG: ${tag_name}
-			EOF
-			any_key_to_continue
+echo "Getting information, please wait..."
+get_kcptun_version_info "$tag_name"
+if [ "$?" != "0" ]; then
+cat >&2 <<-EOF
+The corresponding version download address (TAG: ${tag_name}) was not found, please re-enter!
+You can go to:
+${KCPTUN_TAGS_URL}
+View all available TAGs
+EOF
+tag_name=""
+continue
+else
+cat >&1 <<-EOF
+Kcptun version information found, TAG: ${tag_name}
+EOF
+any_key_to_continue
 
-			install_kcptun "$tag_name"
-			start_supervisor
-			show_version_and_client_url
-			break
-		fi
-	done
+install_kcptun "$tag_name"
+start_supervisor
+show_version_and_client_url
+break
+fi
+done
 }
 
 pre_ckeck() {
-	check_root
+check_root
 
-	if ! is_installed; then
-		cat >&2 <<-EOF
-		错误: 检测到你还没有安装 Kcptun，
-		或者 Kcptun 程序文件已损坏，
-		请运行脚本来重新安装 Kcptun 服务端。
-		EOF
+if ! is_installed; then
+cat >&2 <<-EOF
+Error: Detected that you have not installed Kcptun,
+Or the Kcptun program file is damaged,
+Please run the script to reinstall the Kcptun server.
+EOF
 
-		exit 1
-	fi
+exit 1
+fi
 }
 
-# 监测是否安装了 kcptun
+# Monitor whether kcptun is installed
 is_installed() {
-	if [ -d '/usr/share/kcptun' ]; then
-		cat >&1 <<-EOF
-		检测发现你由旧版升级到了新版
-		新版中将默认安装目录设置为了 ${KCPTUN_INSTALL_DIR}
-		脚本会自动将文件从旧版目录 /usr/share/kcptun
-		移动到新版目录 ${KCPTUN_INSTALL_DIR}
-		EOF
-		any_key_to_continue
-		(
-			set -x
-			cp -rf '/usr/share/kcptun' "$KCPTUN_INSTALL_DIR" && \
-				rm -rf '/usr/share/kcptun'
-		)
-	fi
+if [ -d '/usr/share/kcptun' ]; then
+cat >&1 <<-EOF
+The test found that you have upgraded from the old version to the new version.
+In the new version, the default installation directory is set to ${KCPTUN_INSTALL_DIR}
+The script will automatically copy files from the old directory /usr/share/kcptun
+Move to the new version directory ${KCPTUN_INSTALL_DIR}
+EOF
+any_key_to_continue
+(
+set -x
+cp -rf '/usr/share/kcptun' "$KCPTUN_INSTALL_DIR" && \
+rm -rf '/usr/share/kcptun'
+)
+fi
 
-	if [ -d '/etc/supervisor/conf.d/' ] && [ -d "$KCPTUN_INSTALL_DIR" ] && \
-		[ -n "$(get_installed_version)" ]; then
-		return 0
-	fi
+if [ -d '/etc/supervisor/conf.d/' ] && [ -d "$KCPTUN_INSTALL_DIR" ] && \
+[ -n "$(get_installed_version)" ]; then
+return 0
+fi
 
-	return 1
+return 1
 }
 
-# 检查是否已经安装
+# Check if it is installed
 installed_check() {
-	local instance_count=""
-	instance_count="$(get_instance_count)"
-	if is_installed && [ $instance_count -gt 0 ]; then
-		cat >&1 <<-EOF
-		检测到你已安装 Kcptun 服务端, 已配置的实例个数为 ${instance_count} 个
-		EOF
-		while true
-		do
-			cat >&1 <<-'EOF'
-			请选择你希望的操作:
-			(1) 覆盖安装
-			(2) 重新配置
-			(3) 添加实例(多端口)
-			(4) 检查更新
-			(5) 查看配置
-			(6) 查看日志输出
-			(7) 自定义版本安装
-			(8) 删除实例
-			(9) 完全卸载
-			(10) 退出脚本
-			EOF
-			read -p "(默认: 1) 请选择 [1~10]: " sel
-			[ -z "$sel" ] && sel=1
+local instance_count=""
+instance_count="$(get_instance_count)"
+if is_installed && [ $instance_count -gt 0 ]; then
+cat >&1 <<-EOF
+It is detected that you have installed the Kcptun server, and the number of configured instances is ${instance_count}
+EOF
+while true
+do
+cat >&1 <<-'EOF'
+Please select the action you wish to take:
+(1) Cover installation
+(2) Reconfiguration
+(3) Add instance (multi-port)
+(4) Check for updates
+(5) View configuration
+(6) View log output
+(7) Customized version installation
+(8) Delete instance
+(9) Complete uninstall
+(10) Exit script
+EOF
+read -p "(Default: 1) Please select [1~10]: " sel
+[ -z "$sel" ] && sel=1
 
-			case $sel in
-				1)
-					echo "开始覆盖安装 Kcptun 服务端..."
-					load_instance_config
-					return 0
-					;;
-				2)
-					select_instance
-					instance_reconfig
-					;;
-				3)
-					instance_add
-					;;
-				4)
-					do_update
-					;;
-				5)
-					select_instance
-					instance_show
-					;;
-				6)
-					select_instance
-					instance_log
-					;;
-				7)
-					manual_install
-					;;
-				8)
-					select_instance
-					instance_del
-					;;
-				9)
-					do_uninstall
-					;;
-				10)
-					;;
-				*)
-					echo "输入有误, 请输入有效数字 1~10!"
-					continue
-					;;
-			esac
+case $sel in
+1)
+echo "Start overwriting and installing Kcptun server..."
+load_instance_config
+return 0
+;;
+2)
+select_instance
+instance_reconfig
+;;
+3)
+instance_add
+;;
+4)
+do_update
+;;
+5)
+select_instance
+instance_show
+;;
+6)
+select_instance
+instance_log
+;;
+7)
+manual_install
+;;
+8)
+select_instance
+instance_del
+;;
+9)
+do_uninstall
+;;
+10)
+;;
+*)
+echo "Incorrect input, please enter valid numbers 1~10!"
+continue
+;;
+esac
 
-			exit 0
-		done
-	fi
+exit 0
+done
+fi
 }
 
 action=${1:-"install"}
 case "$action" in
-	install|uninstall|update)
-		do_${action}
-		;;
-	add|reconfig|show|log|del)
-		instance_${action} "$2"
-		;;
-	manual)
-		manual_install "$2"
-		;;
-	help)
-		usage 0
-		;;
-	*)
-		usage 1
-		;;
+install|uninstall|update)
+do_${action}
+;;
+add|reconfig|show|log|del)
+instance_${action} "$2"
+;;
+manual)
+manual_install "$2"
+;;
+help)
+usage 0
+;;
+*)
+usage 1
+;;
 esac
