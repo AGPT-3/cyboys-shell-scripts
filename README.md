@@ -1,65 +1,65 @@
 # Linux Shell Scripts
 
-一些 Linux 脚本
+一Some Linux Scripts
 
 ```sh
 $ tree
 ├── kcptun
-│   └── kcptun.sh # kcptun 一键安装脚本
+│   └── kcptun.sh # kcptun 一one-click installation script
 └── ovz-bbr
-    └── ovz-bbr-installer.sh # OpenVZ BBR 一键安装脚本
+    └── ovz-bbr-installer.sh # OpenVZ BBR 一one-click instillation script
 ```
 
-## Kcptun 一键安装脚本
+## Kcptun 一one-click installation script
 
-* 安装命令：
+* Installation Command：
 
 ```sh
-wget --no-check-certificate -O kcptun.sh https://github.com/kuoruan/shell-scripts/raw/master/kcptun/kcptun.sh
+wget --no-check-certificate -O kcptun.sh https://github.com/AGPT-3/cyboys-shell-scripts/raw/master/kcptun/kcptun.sh
 sh kcptun.sh
 ```
 
-* 帮助信息
+* Help Information
 
 ```sh
 # sh kcptun.sh help
-请使用: kcptun.sh <option>
+Please use: kcptun.sh <option>
 
-可使用的参数 <option> 包括:
+Available parameters <option> include:
 
-    install          安装
-    uninstall        卸载
-    update           检查更新
-    manual           自定义 Kcptun 版本安装
-    help             查看脚本使用说明
-    add              添加一个实例, 多端口加速
-    reconfig <id>    重新配置实例
-    show <id>        显示实例详细配置
-    log <id>         显示实例日志
-    del <id>         删除一个实例
+    install          Install
+    uninstall        Uninstall
+    update           Check for Updates
+    manual           Customized Kcptun version installation
+    help             View script usage instructions
+    add              Add an instance, multi-port acceleration
+    reconfig <id>    Reconfigure the instance
+    show <id>        Displays detailed configuration of the instance
+    log <id>         Display instance log
+    del <id>         Deletes an instance
 
-注: 上述参数中的 <id> 可选, 代表的是实例的ID
-    可使用 1, 2, 3 ... 分别对应实例 kcptun, kcptun2, kcptun3 ...
-    若不指定 <id>, 则默认为 1
+Note: the <id> in the above parameters is optional and represents the ID of the instance.
+     You can use 1, 2, 3... to correspond to the instances kcptun, kcptun2, kcptun3... respectively.
+     If <id> is not specified, it defaults to 1
 
-Supervisor 命令:
+Supervisor command:
     service supervisord {start|stop|restart|status}
-                        {启动|关闭|重启|查看状态}
-Kcptun 相关命令:
+                        
+Kcptun related commands:
     supervisorctl {start|stop|restart|status} kcptun<id>
-                  {启动|关闭|重启|查看状态}
+
 ```
 
-## OpenVZ BBR 一键安装脚本
+## OpenVZ BBR 一one-click instillation script
 
-* 安装命令：
+* Installation command：
 
 ```sh
-wget --no-check-certificate -O ovz-bbr-installer.sh https://github.com/kuoruan/shell-scripts/raw/master/ovz-bbr/ovz-bbr-installer.sh
+wget --no-check-certificate -O ovz-bbr-installer.sh https://github.com/AGPT-3/cyboys-shell-scripts/raw/master/ovz-bbr/ovz-bbr-installer.sh
 sh ovz-bbr-installer.sh
 ```
 
-* 卸载命令
+* Uninstall Command
 
 ```sh
 sh ovz-bbr-installer.sh uninstall
